@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>AmooNotes</title>
+  <link rel="stylesheet" href="editor/editor.css" />
+</head>
+<body>
+  <div id="host"></div>
+  <script src="editor/editor.js"></script>
+  <script>
+    // 胶水层:防抖落盘(经 AmooNative 写文件)、原生切换/外部更新入口
+    (function () {
+      var pending = false
+      var saveTimer = null
+      var mounted = false
+
+      function mount() {
+        if (mounted) return
+        mounted = true
+        window.AmooNotes.mount({
+          onChange: function () {
+            pending = true
+            clearTimeout(saveTimer)
+            saveTimer = setTimeout(flush, 400)
+          },
+          onTitleInput: function (t) {
+            window.AmooNative.setTitle(t || '')
+          },
+        })
+      }
+
+      function flush() {
+        clearTimeout(saveTimer)
+        if (!pending) return
+        pending = false
+        var s = window.AmooNotes.serialize()
+        if (s.id) window.AmooNative.writeNote(s.id, s.raw)
+      }
+
+      /** 原生切换笔记/外部更新:先把挂起的编辑写盘,再灌入新内容 */
+      window.__switch = function (json) {
+        flush()
+        window.AmooNotes.loadNote(JSON.parse(json))
+      }
+
+      /** 原生新建:立即落盘空笔记 */
+      window.__flushNow = function () {
+        pending = true
+        flush()
+      }
+
+      mount()
+      if (window.AmooNative && window.AmooNative.ready) window.AmooNative.ready()
+    })()
+  </script>
+</body>
+</html>

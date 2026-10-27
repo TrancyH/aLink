@@ -1,0 +1,195 @@
+/* ============================================================
+   应用面板页(批次2):搜索框 + 应用卡片网格
+   依赖 global.css 的 .card / .btn / .skeleton / .empty-state
+   ============================================================ */
+
+.apps-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* ---------- 搜索框 ---------- */
+
+.apps-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 30px;
+  width: 230px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  transition: border-color var(--duration-fast) var(--ease-standard);
+}
+
+.apps-search:focus-within {
+  border-color: var(--color-accent-border);
+}
+
+.apps-search:has(input:disabled) {
+  opacity: 0.55;
+}
+
+.apps-search-icon {
+  color: var(--color-text-tertiary);
+}
+
+.apps-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-md);
+}
+
+.apps-search input:focus {
+  outline: none;
+}
+
+.apps-search input::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.apps-search-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-surface-active);
+  color: var(--color-text-tertiary);
+  font-size: 12px;
+  line-height: 1;
+  transition:
+    background var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+
+.apps-search-clear:hover {
+  background: var(--color-border-strong);
+  color: var(--color-text-primary);
+}
+
+/* ---------- 应用网格 ---------- */
+
+.apps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--space-3);
+  align-content: start;
+}
+
+.app-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-3) var(--space-3);
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
+}
+
+.app-card:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+  border-color: var(--color-border-strong);
+}
+
+.app-card:active:not(:disabled) {
+  background: var(--color-surface-active);
+  transform: scale(0.98);
+}
+
+.app-card.busy {
+  opacity: 0.6;
+}
+
+.app-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-lg);
+  color: #ffffff;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  user-select: none;
+}
+
+.app-name {
+  max-width: 100%;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-pkg {
+  max-width: 100%;
+  color: var(--color-text-tertiary);
+  font-size: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- 空状态 / 错误 ---------- */
+
+.apps-full-empty {
+  flex: 1;
+  display: flex;
+}
+
+.apps-error-icon {
+  font-size: 20px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-danger-text);
+}
+
+/* ---------- 加载骨架 ---------- */
+
+.app-skel-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-3) var(--space-3);
+  opacity: 0.6;
+}
+
+.app-skel-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-lg);
+}
+
+.app-skel-name {
+  width: 56%;
+  height: 12px;
+}
+
+.app-skel-pkg {
+  width: 72%;
+  height: 9px;
+}
+
+/* ---------- 窄窗口:卡片最小宽度收紧 ---------- */
+
+@media (max-width: 720px) {
+  .apps-grid {
+    grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
+  }
+
+  .apps-search {
+    width: 170px;
+  }
+}

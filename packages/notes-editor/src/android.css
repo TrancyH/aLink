@@ -1,0 +1,48 @@
+/* Android WebView 壳的基础样式(编辑器 bundle 一并构建) */
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #ffffff;
+  color: #1a1a1e;
+  font-family: -apple-system, 'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+#host { height: 100%; display: flex; flex-direction: column; }
+
+.note-title-input {
+  border: none;
+  outline: none;
+  padding: 16px 18px 8px;
+  font-size: 21px;
+  font-weight: 600;
+  color: inherit;
+  background: transparent;
+}
+
+.notes-prose-host { flex: 1; overflow-y: auto; padding: 0 18px 96px; }
+.notes-prose-host .tiptap { outline: none; min-height: 40vh; font-size: 16px; line-height: 1.75; }
+
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: #b3b3bb;
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+.tiptap ul[data-type='taskList'] { list-style: none; padding-left: 4px; }
+.tiptap ul[data-type='taskList'] li { display: flex; gap: 8px; }
+.tiptap ul[data-type='taskList'] li > label { flex: 0 0 auto; margin-top: 4px; }
+.tiptap blockquote {
+  border-left: 3px solid #d8d8de;
+  margin: 8px 0;
+  padding: 2px 0 2px 12px;
+  color: #5f5f68;
+}
+.tiptap h2 { font-size: 19px; margin: 18px 0 6px; }
+.tiptap h3 { font-size: 17px; margin: 14px 0 4px; }
+.tiptap code { background: #f2f2f5; border-radius: 4px; padding: 1px 5px; font-size: 90%; }

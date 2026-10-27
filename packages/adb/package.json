@@ -1,0 +1,27 @@
+{
+  "name": "@amoolink/adb",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "ADB 通路封装:设备监听、信息采集、shell/push/pull/forward、无线配对",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@u4/adbkit": "^5.1.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.9.0",
+    "vitest": "^5.0.5"
+  }
+}

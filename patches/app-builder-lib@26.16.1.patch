@@ -1,0 +1,20 @@
+diff --git a/out/util/electronGet.js b/out/util/electronGet.js
+index 11a859bbabb4e6f3ec94734cdbe68f9557e89493..915b5bd35d1156fcd870ddb2cbd016935569f542 100644
+--- a/out/util/electronGet.js
++++ b/out/util/electronGet.js
+@@ -15,6 +15,15 @@ exports.downloadElectronArtifact = downloadElectronArtifact;
+ exports.getBinariesMirrorUrl = getBinariesMirrorUrl;
+ const get = require("@electron/get");
+ const get_1 = require("@electron/get");
++// [AmooLink patch] app-builder-lib 引用了 @electron/get 未发布的 ElectronDownloadCacheMode 枚举;
++// 5.1.0 尚无此导出,这里按上游定义补齐(Disabled/Bypass/ReadOnly/ReadWrite/WriteOnly)。
++get_1.ElectronDownloadCacheMode = get_1.ElectronDownloadCacheMode || {
++    Disabled: 0, 0: "Disabled",
++    Bypass: 1, 1: "Bypass",
++    ReadOnly: 2, 2: "ReadOnly",
++    ReadWrite: 3, 3: "ReadWrite",
++    WriteOnly: 4, 4: "WriteOnly",
++};
+ const builder_util_1 = require("builder-util");
+ const _7zip_1 = require("../toolsets/7zip");
+ const multiProgress_1 = require("electron-publish/out/multiProgress");

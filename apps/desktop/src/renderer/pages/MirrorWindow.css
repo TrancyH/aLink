@@ -1,0 +1,141 @@
+/* 投屏窗口(M1 引擎布局;视觉打磨见 MirrorWindow 页面与工具条) */
+
+.mirror-window {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #000;
+  overflow: hidden;
+  user-select: none;
+  /* 画面贴近自然边界,标题栏由系统提供 */
+  padding-top: 2px;
+}
+
+.mirror-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.mirror-canvas {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  object-fit: contain;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.mirror-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.72);
+  color: #e5e7eb;
+  font-size: 14px;
+  text-align: center;
+  padding: 24px;
+}
+
+.mirror-osd {
+  position: absolute;
+  left: 10px;
+  top: 34px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #d1d5db;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.mirror-osd-hidden {
+  position: absolute;
+  left: 10px;
+  top: 34px;
+  width: 44px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.mirror-toast {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 14px;
+  background: rgba(17, 24, 39, 0.92);
+  color: #f9fafb;
+  font-size: 12px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  max-width: 80%;
+}
+
+.mirror-toolbar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 8px 11px;
+  background: #101014;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  flex-wrap: wrap;
+  flex: none;
+}
+
+.mirror-btn {
+  min-width: 34px;
+  height: 30px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #d1d5db;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.mirror-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.mirror-btn.active {
+  background: #4f46e5;
+  color: #fff;
+}
+
+/* 拖拽上传遮罩 */
+.mirror-drop-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(79, 70, 229, 0.28);
+  border: 2px dashed rgba(139, 132, 250, 0.9);
+  border-radius: 14px;
+  margin: 10px;
+  pointer-events: none;
+}
+
+.mirror-drop-icon {
+  font-size: 42px;
+  color: #e0e7ff;
+  line-height: 1;
+}
+
+.mirror-drop-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #eef2ff;
+}
+
+.mirror-drop-sub {
+  font-size: 12px;
+  color: rgba(224, 231, 255, 0.8);
+}

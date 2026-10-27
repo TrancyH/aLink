@@ -1,0 +1,447 @@
+/* ============================================================
+   文件管理页(M2:真实数据)
+   依赖 global.css 的 .card / .btn / .badge / .skeleton / .toast
+   ============================================================ */
+
+.files-page {
+  position: relative; /* 拖拽遮罩定位锚 */
+}
+
+/* 拖拽经过时整页高亮边框 */
+.files-page.dragging::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  z-index: 50;
+  border: 1.5px dashed var(--color-accent-border);
+  border-radius: var(--radius-lg);
+  pointer-events: none;
+}
+
+.files-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* ---------- 工具栏:快捷目录 + 面包屑 ---------- */
+
+.files-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.quick-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.chip {
+  height: 26px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+  transition:
+    background var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard),
+    opacity var(--duration-fast) linear;
+}
+
+.chip:hover:not(:disabled) {
+  color: var(--color-text-primary);
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-hover);
+}
+
+.chip.active {
+  background: var(--color-accent-subtle);
+  border-color: var(--color-accent-border);
+  color: var(--color-accent-text);
+}
+
+.chip:disabled {
+  opacity: 0.45;
+}
+
+/* ---------- 面包屑 ---------- */
+
+.crumbs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-md);
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.crumb-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+.crumb.current {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+.crumb-link {
+  color: var(--color-text-secondary);
+  transition:
+    background var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+
+.crumb-link:hover {
+  color: var(--color-text-primary);
+  background: var(--color-surface-hover);
+}
+
+.crumb-sep {
+  color: var(--color-text-tertiary);
+}
+
+/* ---------- 目录列表 ---------- */
+
+.files-list {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 220px;
+}
+
+.fl-head,
+.fl-row {
+  display: grid;
+  grid-template-columns: 26px 32px minmax(0, 1fr) 90px 150px;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-4);
+}
+
+.fl-head {
+  height: 36px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-tertiary);
+  letter-spacing: 0.03em;
+  user-select: none;
+}
+
+.fl-col-size,
+.fl-size,
+.fl-col-mtime,
+.fl-mtime {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.fl-rows {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-2) 0;
+}
+
+.fl-row {
+  height: 36px;
+  border-radius: var(--radius-sm);
+  cursor: default;
+  user-select: none;
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.fl-row:hover {
+  background: var(--color-surface-hover);
+}
+
+.fl-row.selected {
+  background: var(--color-accent-subtle);
+  box-shadow: inset 0 0 0 1px var(--color-accent-border);
+}
+
+.fl-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fl-size,
+.fl-mtime {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- 自定义复选框 ---------- */
+
+.fl-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1.5px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: transparent;
+  flex-shrink: 0;
+  transition:
+    background var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
+}
+
+.fl-check:hover:not(:disabled) {
+  border-color: var(--color-accent);
+}
+
+.fl-check.on {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.fl-check.partial {
+  border-color: var(--color-accent);
+}
+
+.fl-check.partial::before {
+  content: '';
+  width: 8px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--color-accent);
+}
+
+.fl-check:disabled {
+  opacity: 0.4;
+}
+
+/* ---------- 行内图标:目录(SVG)/ 文件(纯 CSS 折角页) ---------- */
+
+.fl-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  justify-self: start;
+}
+
+.fl-icon.dir {
+  color: var(--color-accent-text);
+}
+
+.fl-icon.file {
+  position: relative;
+  width: 12px;
+  height: 15px;
+  border-radius: 2px;
+  background: var(--color-surface-active);
+  border: 1px solid var(--color-border-strong);
+}
+
+.fl-icon.file::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 6px;
+  height: 6px;
+  background: var(--color-surface);
+  border-left: 1px solid var(--color-border-strong);
+  border-bottom: 1px solid var(--color-border-strong);
+  border-top-right-radius: 2px;
+}
+
+/* ---------- 骨架 ---------- */
+
+.fl-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  opacity: 0.6;
+}
+
+.skeleton-row {
+  display: grid;
+  grid-template-columns: 26px 32px minmax(0, 1fr) 90px 150px;
+  align-items: center;
+  gap: var(--space-3);
+  height: 20px;
+}
+
+.fl-sk-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-sm);
+}
+
+.fl-sk-name {
+  height: 11px;
+  width: 45%;
+}
+
+.fl-sk-size {
+  height: 11px;
+  width: 54px;
+  justify-self: end;
+}
+
+.fl-sk-time {
+  height: 11px;
+  width: 92px;
+  justify-self: end;
+}
+
+/* ---------- 空状态 / 错误 ---------- */
+
+.files-full-empty {
+  flex: 1;
+  display: flex;
+}
+
+.fl-error-icon {
+  font-size: 20px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-danger-text);
+}
+
+/* ---------- 选中操作条(sticky 贴底悬浮) ---------- */
+
+.files-actionbar {
+  position: sticky;
+  bottom: calc(-1 * var(--space-6)); /* 抵消 page-body 底 padding,贴住可视底缘 */
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: max-content;
+  max-width: 100%;
+  margin: var(--space-3) auto 0;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-bg-elevated);
+  box-shadow: var(--shadow-overlay);
+  z-index: 40;
+  animation: actionbar-in var(--duration-base) var(--ease-out);
+}
+
+.actionbar-count {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  margin-right: var(--space-1);
+}
+
+/* 删除按钮武装态:再次点击才执行 */
+.btn.btn-danger-armed {
+  background: var(--color-danger);
+  border-color: transparent;
+  color: var(--color-on-accent);
+}
+
+.btn.btn-danger-armed:hover:not(:disabled) {
+  background: var(--color-danger-text);
+  border-color: transparent;
+}
+
+@keyframes actionbar-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-2));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---------- 拖拽上传遮罩 ---------- */
+
+.drop-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 11, 15, 0.72);
+  backdrop-filter: blur(2px);
+}
+
+.drop-hint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-8) var(--space-10);
+  border: 1.5px dashed var(--color-accent-border);
+  color: var(--color-accent-text);
+  pointer-events: none; /* 避免遮罩自身触发 dragleave 抖动 */
+}
+
+.drop-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+.drop-desc {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+}
+
+/* ---------- 带动作按钮的轻提示 ---------- */
+
+.files-toast {
+  cursor: default;
+}
+
+.files-toast-action {
+  margin-left: var(--space-3);
+  padding: 3px var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}
+
+.files-toast-action:hover {
+  background: var(--color-accent-hover);
+}
+
+/* ---------- 窄窗口:隐藏时间列 ---------- */
+
+@media (max-width: 780px) {
+  .fl-head,
+  .fl-row,
+  .skeleton-row {
+    grid-template-columns: 26px 32px minmax(0, 1fr) 84px;
+  }
+
+  .fl-col-mtime,
+  .fl-mtime,
+  .fl-sk-time {
+    display: none;
+  }
+}

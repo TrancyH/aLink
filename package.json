@@ -1,0 +1,31 @@
+{
+  "name": "amoolink",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.22.0",
+  "description": "AmooLink — 跨平台手机互联应用(投屏反控 / 文件互传 / 剪贴板同步 / 通知同步)",
+  "scripts": {
+    "dev": "pnpm --filter @amoolink/desktop dev",
+    "build": "pnpm -r typecheck && pnpm --filter @amoolink/desktop build",
+    "typecheck": "pnpm -r typecheck",
+    "check:device": "pnpm --filter @amoolink/adb exec tsx scripts/check-device.ts",
+    "test": "pnpm -r test",
+    "probe:mirror": "pnpm --filter @amoolink/scrcpy-client exec tsx scripts/mirror-probe.ts",
+    "e2e:mirror": "zsh apps/desktop/scripts/e2e-mirror.sh",
+    "probe:m2": "pnpm --filter @amoolink/adb exec tsx scripts/m2-probe.ts",
+    "e2e:files": "zsh apps/desktop/scripts/e2e-files.sh",
+    "probe:m3": "pnpm --filter @amoolink/scrcpy-client exec tsx scripts/m3-probe.ts",
+    "e2e:m3": "zsh apps/desktop/scripts/e2e-m3.sh",
+    "probe:m8": "pnpm --filter @amoolink/adb exec tsx scripts/m8-probe.ts",
+    "probe:m9": "pnpm --filter @amoolink/scrcpy-client exec tsx scripts/m9-probe.ts",
+    "probe:m10": "pnpm --filter @amoolink/scrcpy-client exec tsx scripts/m10-probe.ts",
+    "e2e:rec": "zsh apps/desktop/scripts/e2e-rec2.sh",
+    "e2e:notes": "zsh apps/desktop/scripts/e2e-notes.sh"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.0",
+    "vitest": "^5.0.5"
+  }
+}

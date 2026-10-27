@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "@amoolink/adb": ["../../packages/adb/src/index.ts"],
+      "@amoolink/scrcpy-client": ["../../packages/scrcpy-client/src/index.ts"],
+      "@amoolink/notes-editor": ["../../packages/notes-editor/src/index.ts"]
+    }
+  },
+  "include": ["src/main", "src/preload", "scripts", "electron.vite.config.ts"]
+}

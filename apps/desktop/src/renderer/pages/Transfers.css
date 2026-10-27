@@ -1,0 +1,180 @@
+/* ============================================================
+   传输队列页(M2:真实数据)
+   依赖 global.css 的 .card / .btn / .badge / .meter / .empty-state
+   ============================================================ */
+
+.transfers-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.transfer-table {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.t-row {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 84px minmax(160px, 220px) 92px 84px;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-4);
+}
+
+.t-head {
+  height: 40px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.t-head .t-cell {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-tertiary);
+  letter-spacing: 0.03em;
+  user-select: none;
+}
+
+.t-body {
+  flex: 1;
+  display: flex;
+  min-height: 240px;
+}
+
+.t-empty {
+  flex: 1;
+}
+
+/* ---------- 任务行 ---------- */
+
+.t-list {
+  display: block;
+  overflow-y: auto;
+}
+
+.t-task {
+  min-height: 52px;
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.t-task:last-child {
+  border-bottom: none;
+}
+
+.t-task:hover {
+  background: var(--color-surface-hover);
+}
+
+.t-cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.t-size,
+.t-pct {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+/* 方向图标:上传 ↑ / 下载 ↓(上传图标旋转 180°) */
+.t-dir-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-md);
+  background: var(--color-accent-subtle);
+  color: var(--color-accent-text);
+}
+
+.t-dir-icon.down {
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
+}
+
+.t-dir-icon.down svg {
+  transform: rotate(180deg);
+}
+
+/* 文件名列:主名 + 徽标 / 错误摘要可换行 */
+.t-file {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.t-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text-primary);
+}
+
+.t-install {
+  align-self: flex-start;
+  gap: 4px;
+}
+
+.t-error {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-xs);
+  color: var(--color-danger-text);
+}
+
+/* 进度单元格:meter + 百分比 */
+.t-progress-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.t-meter {
+  flex: 1;
+}
+
+.t-pct {
+  width: 40px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.t-meter .meter-fill.danger {
+  background: var(--color-danger);
+}
+
+.t-status-cell {
+  display: flex;
+  justify-content: flex-start;
+}
+
+/* 操作列:按钮收纳 */
+.t-actions-cell {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-1);
+}
+
+.t-actions-cell .btn {
+  height: 24px;
+  padding: 0 var(--space-2);
+  font-size: var(--font-size-xs);
+}
+
+@media (max-width: 860px) {
+  .t-row {
+    grid-template-columns: 36px minmax(0, 1fr) 72px 120px 76px 76px;
+  }
+}

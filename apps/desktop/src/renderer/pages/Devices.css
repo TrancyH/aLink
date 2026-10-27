@@ -1,0 +1,228 @@
+/* ============================================================
+   设备管理页(T15)
+   ============================================================ */
+
+.header-logo {
+  color: var(--color-accent-text);
+}
+
+.devices-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* ---------- 双栏布局 ---------- */
+
+/* ── vivo 风格单设备大卡片 ─────────────────────────── */
+.devices-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding-top: 8px;
+}
+
+/* 多设备切换 chips(仅 >1 台时出现) */
+.device-switcher {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.switch-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  border-radius: var(--radius-full, 999px);
+  border: 1px solid var(--color-border, rgba(128, 128, 128, 0.28));
+  background: var(--color-surface, #1c1e27);
+  color: var(--color-text-secondary, #9aa0b0);
+  font-size: var(--font-sm, 12px);
+  cursor: pointer;
+}
+.switch-chip.active {
+  border-color: var(--color-accent, #6b76f2);
+  color: var(--color-text, #e8eaf0);
+  background: color-mix(in srgb, var(--color-accent, #6b76f2) 14%, transparent);
+}
+.switch-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.switch-dot.tone-success { background: #34c77b; }
+.switch-dot.tone-warning { background: #e6a23c; }
+.switch-dot.tone-danger  { background: #e5555d; }
+
+/* 大卡片 */
+.hero-card {
+  width: min(680px, 100%);
+  padding: 28px 30px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.hero-card.skeleton-card { height: 320px; }
+
+.hero-top {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.hero-phone {
+  width: 76px;
+  height: 76px;
+  border-radius: 22px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(145deg,
+    color-mix(in srgb, var(--color-accent, #6b76f2) 26%, transparent),
+    color-mix(in srgb, var(--color-accent, #6b76f2) 8%, transparent));
+  color: var(--color-accent, #6b76f2);
+  flex: none;
+}
+.hero-id { min-width: 0; }
+.hero-name {
+  margin: 0 0 8px;
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+.hero-tags {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.hero-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--font-sm, 12px);
+  color: var(--color-text-secondary, #9aa0b0);
+}
+
+/* 信息网格 */
+.hero-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px 24px;
+  margin: 0;
+}
+.meta-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-surface, #1c1e27) 70%, transparent);
+}
+.meta-label {
+  font-size: var(--font-sm, 12px);
+  color: var(--color-text-secondary, #9aa0b0);
+  flex: none;
+}
+.meta-value {
+  margin: 0;
+  font-size: var(--font-md, 13px);
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.meta-sub {
+  margin-left: 6px;
+  font-size: var(--font-xs, 11px);
+  color: var(--color-text-secondary, #9aa0b0);
+}
+.serial-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+}
+.serial-text { overflow: hidden; text-overflow: ellipsis; }
+.copy-btn { padding: 3px 9px; font-size: var(--font-xs, 11px); }
+
+/* 电量/存储 */
+.hero-meters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+.meter-block { display: flex; flex-direction: column; gap: 8px; }
+.meter-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.meter-title {
+  font-size: var(--font-md, 13px);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.charging-tag {
+  font-size: var(--font-xs, 11px);
+  padding: 1px 7px;
+  border-radius: var(--radius-full, 999px);
+  background: color-mix(in srgb, #34c77b 18%, transparent);
+  color: #4bd48d;
+}
+.meter-value { font-size: var(--font-sm, 12px); color: var(--color-text-secondary, #9aa0b0); }
+.meter {
+  height: 8px;
+  border-radius: var(--radius-full, 999px);
+  background: color-mix(in srgb, var(--color-surface-active, #2a2d3a) 80%, transparent);
+  overflow: hidden;
+}
+.meter-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-accent, #6b76f2);
+  transition: width 0.4s ease;
+}
+.meter-fill.success { background: #34c77b; }
+.meter-fill.warning { background: #e6a23c; }
+.meter-fill[data-pct='high'] { background: #e5555d; }
+.meter-foot {
+  margin: 0;
+  font-size: var(--font-xs, 11px);
+  color: var(--color-text-secondary, #9aa0b0);
+}
+
+/* 操作区:统一尺寸按钮网格(主按钮占整行) */
+.hero-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+.hero-action {
+  height: 46px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: var(--font-md, 13px);
+  padding: 0 10px;
+  white-space: nowrap;
+}
+.hero-action.main {
+  grid-column: 1 / -1;
+  height: 50px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.hero-action:disabled { opacity: 0.45; cursor: not-allowed; }
+
+@media (max-width: 640px) {
+  .hero-grid { grid-template-columns: 1fr; }
+  .hero-meters { grid-template-columns: 1fr; }
+  .hero-actions { grid-template-columns: repeat(2, 1fr); }
+  .hero-top { flex-direction: column; text-align: center; }
+  .hero-tags { justify-content: center; }
+}

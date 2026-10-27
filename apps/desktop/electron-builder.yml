@@ -1,0 +1,27 @@
+appId: com.amoolink.desktop
+productName: AmooLink
+directories:
+  output: release
+files:
+  - out/**
+  - package.json
+asar: true
+# scrcpy-server 与 adb 二进制放 asar 外(extraResources),路径经 process.resourcesPath 解析
+extraResources:
+  - from: resources
+    to: resources
+asarUnpack: []
+mac:
+  category: public.app-category.utilities
+  target:
+    - target: dmg
+      arch: [arm64]
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+
+# M6:伴侣笔记 APK 置于 resources/android/AmooNotes.apk,经上方 resources 整体分发

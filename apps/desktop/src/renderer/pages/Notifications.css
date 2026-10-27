@@ -1,0 +1,119 @@
+/* ============================================================
+   通知页(M3):实时同步通知列表
+   依赖 global.css 的 .card / .btn / .hint / .empty-state
+   ============================================================ */
+
+.notifications-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 720px;
+}
+
+/* ---------- 列表 ---------- */
+
+.notif-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.notif-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+}
+
+/* 实时新到条目:300ms 高亮渐入(accent 底色渐隐 + 轻微下落) */
+.notif-card.is-new {
+  animation: notif-in 300ms var(--ease-standard);
+}
+
+@keyframes notif-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px);
+    background: var(--color-accent-subtle);
+    border-color: var(--color-accent-border);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(0);
+    background: var(--color-accent-subtle);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    background: transparent;
+  }
+}
+
+/* App 图标位:首字母圆形底色,颜色由组件按 pkg 哈希内联注入 */
+.notif-app {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  user-select: none;
+}
+
+.notif-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.notif-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.notif-title {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notif-pkg {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notif-time {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.notif-text {
+  margin-top: 2px;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+/* ---------- 空状态 ---------- */
+
+.notif-empty {
+  min-height: 280px;
+  display: flex;
+}

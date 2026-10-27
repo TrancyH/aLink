@@ -1,0 +1,146 @@
+/* ============================================================
+   AmooLink 设计令牌(T14)
+   暗色为默认;浅色通过 prefers-color-scheme 切换。
+   命名约定:--color-* / --space-* / --radius-* / --font-* /
+            --shadow-* / --duration-* / --ease-*
+   ============================================================ */
+
+:root {
+  color-scheme: dark;
+
+  /* ---------- 色彩 · 暗色(默认) ---------- */
+  --color-bg: #0e0f13; /* 应用底色 */
+  --color-bg-elevated: #14151a; /* 侧边栏 / 浮层底 */
+  --color-surface: #191b21; /* 卡片表面 */
+  --color-surface-hover: #212329; /* 卡片悬停 */
+  --color-surface-active: #26282f; /* 卡片按下 / 选中 */
+
+  --color-border: #262932;
+  --color-border-strong: #353a47;
+
+  --color-text-primary: #e9eaee;
+  --color-text-secondary: #a6a9b4;
+  --color-text-tertiary: #6f7383;
+
+  /* 主色:靛蓝(参考 Linear 的克制蓝紫) */
+  --color-accent: #6b76f2;
+  --color-accent-hover: #818cf8;
+  --color-accent-text: #a2abff; /* 暗底上的强调文字 */
+  --color-accent-subtle: rgba(107, 118, 242, 0.15);
+  --color-accent-border: rgba(107, 118, 242, 0.4);
+  --color-on-accent: #ffffff;
+
+  /* 语义色 */
+  --color-success: #2fae74;
+  --color-success-text: #55cf9a;
+  --color-success-bg: rgba(47, 174, 116, 0.14);
+  --color-warning: #de9b35;
+  --color-warning-text: #f0b45a;
+  --color-warning-bg: rgba(222, 155, 53, 0.14);
+  --color-danger: #e2606c;
+  --color-danger-text: #f2818c;
+  --color-danger-bg: rgba(226, 96, 108, 0.14);
+
+  /* 滚动条 */
+  --color-scrollbar: rgba(255, 255, 255, 0.13);
+  --color-scrollbar-hover: rgba(255, 255, 255, 0.26);
+
+  /* 骨架屏微光 */
+  --color-skeleton-a: #1f2128;
+  --color-skeleton-b: #282b34;
+
+  /* ---------- 阴影 ---------- */
+  --shadow-pop: 0 4px 14px rgba(0, 0, 0, 0.35);
+  --shadow-overlay: 0 12px 32px rgba(0, 0, 0, 0.45);
+
+  /* ---------- 字体 ---------- */
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-md: 13px;
+  --font-size-lg: 15px;
+  --font-size-xl: 18px;
+  --font-size-xxl: 24px;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+
+  /* ---------- 间距(4px 基数) ---------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* ---------- 圆角 ---------- */
+  --radius-sm: 5px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 999px;
+
+  /* ---------- 动效 ---------- */
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-standard: cubic-bezier(0.25, 0.1, 0.25, 1);
+
+  /* ---------- 层级 ---------- */
+  --z-toast: 100;
+}
+
+/* ---------- 浅色 ---------- */
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+
+    --color-bg: #f4f5f7;
+    --color-bg-elevated: #fbfbfc;
+    --color-surface: #ffffff;
+    --color-surface-hover: #f2f3f6;
+    --color-surface-active: #ebedf1;
+
+    --color-border: #e5e7ec;
+    --color-border-strong: #d2d5de;
+
+    --color-text-primary: #1d1f26;
+    --color-text-secondary: #585d6b;
+    --color-text-tertiary: #8b90a0;
+
+    --color-accent: #545ce8;
+    --color-accent-hover: #4753e0;
+    --color-accent-text: #4b53d8;
+    --color-accent-subtle: rgba(84, 92, 232, 0.1);
+    --color-accent-border: rgba(84, 92, 232, 0.35);
+    --color-on-accent: #ffffff;
+
+    --color-success: #1e9e63;
+    --color-success-text: #17834f;
+    --color-success-bg: rgba(30, 158, 99, 0.12);
+    --color-warning: #c07f22;
+    --color-warning-text: #9a6516;
+    --color-warning-bg: rgba(192, 127, 34, 0.12);
+    --color-danger: #d5485b;
+    --color-danger-text: #c23a4c;
+    --color-danger-bg: rgba(213, 72, 91, 0.1);
+
+    --color-scrollbar: rgba(20, 24, 40, 0.18);
+    --color-scrollbar-hover: rgba(20, 24, 40, 0.32);
+
+    --color-skeleton-a: #eceef2;
+    --color-skeleton-b: #f7f8fa;
+
+    --shadow-pop: 0 4px 14px rgba(23, 26, 40, 0.12);
+    --shadow-overlay: 0 12px 32px rgba(23, 26, 40, 0.16);
+  }
+}

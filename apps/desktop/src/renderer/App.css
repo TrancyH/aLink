@@ -1,0 +1,118 @@
+/* ============================================================
+   应用外壳:侧边导航 + 内容区(T17)
+   侧边栏为窗口拖拽区(hiddenInset 标题栏)。
+   ============================================================ */
+
+.app {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 208px;
+  flex-shrink: 0;
+  background: var(--color-bg-elevated);
+  border-right: 1px solid var(--color-border);
+  padding: 0 var(--space-3) var(--space-3);
+}
+
+/* 品牌区:同时是顶部拖拽区,需避开红绿灯按钮(macOS) */
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 52px;
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
+  margin-top: 26px; /* 给红绿灯留位 */
+  user-select: none;
+}
+
+.sidebar-brand-name {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.01em;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: var(--space-4);
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: 34px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-md);
+  transition:
+    background var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+
+.nav-item:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
+}
+
+.nav-item.active {
+  background: var(--color-accent-subtle);
+  color: var(--color-accent-text);
+  font-weight: var(--font-weight-medium);
+}
+
+.nav-item-icon {
+  opacity: 0.9;
+}
+
+.nav-item-label {
+  flex: 1;
+}
+
+.nav-item-badge {
+  font-size: 10px;
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.04em;
+  color: var(--color-text-tertiary);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  padding: 0 4px;
+  line-height: 16px;
+}
+
+.nav-item.active .nav-item-badge {
+  color: var(--color-accent-text);
+  border-color: var(--color-accent-border);
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-3) var(--space-3) var(--space-1);
+}
+
+.sidebar-version {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.sidebar-copyright {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  overflow: hidden;
+}
