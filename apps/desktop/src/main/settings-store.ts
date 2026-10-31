@@ -22,12 +22,18 @@ export interface AppSettings {
   files: {
     downloadDir: string
   }
+  transfers: {
+    /** 并行传输数(1-4;M2 为串行,实测并发通道稳定后开放)。 */
+    concurrency: number
+  }
   privacy: {
     clipboardSyncMode: 'auto' | 'manual'
     keepHistory: boolean
   }
   notifications: {
     enabled: boolean
+    /** 按 App 免打扰:命中包名的通知不再弹系统通知/进通知页(docs/03 §6)。 */
+    mutedApps: string[]
   }
   notes: {
     /** 手机连接后自动双向同步笔记(关=仅手动同步)。 */
@@ -43,8 +49,9 @@ export interface AppSettings {
 export const DEFAULT_SETTINGS: AppSettings = {
   mirror: { maxSize: 0, bitrate: 8_000_000, maxFps: 0, stayAwake: true, uploadDir: '/sdcard/Download', autoBlackScreen: true, audio: true, videoCodec: 'h264' },
   files: { downloadDir: '' },
+  transfers: { concurrency: 2 },
   privacy: { clipboardSyncMode: 'manual', keepHistory: false },
-  notifications: { enabled: true },
+  notifications: { enabled: true, mutedApps: [] },
   notes: { autoSync: true },
   general: { language: 'zh-CN', autoStart: false, tray: true },
 }

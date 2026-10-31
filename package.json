@@ -18,8 +18,13 @@
     "probe:m3": "pnpm --filter @amoolink/scrcpy-client exec tsx scripts/m3-probe.ts",
     "e2e:m3": "zsh apps/desktop/scripts/e2e-m3.sh",
     "probe:m8": "pnpm --filter @amoolink/adb exec tsx scripts/m8-probe.ts",
+    "probe:apk-install": "pnpm --filter @amoolink/adb exec tsx scripts/apk-install-probe.ts",
+    "probe:concurrency": "pnpm --filter @amoolink/adb exec tsx scripts/concurrency-probe.ts",
+    "probe:mute": "pnpm --filter @amoolink/adb exec tsx scripts/mute-probe.ts",
+    "probe:m5": "pnpm --filter @amoolink/companion exec node --import tsx scripts/m5-probe.ts",
     "probe:m9": "pnpm --filter @amoolink/scrcpy-client exec tsx scripts/m9-probe.ts",
     "probe:m10": "pnpm --filter @amoolink/scrcpy-client exec tsx scripts/m10-probe.ts",
+    "probe:lock-rotate": "pnpm --filter @amoolink/scrcpy-client exec tsx scripts/lock-rotate-probe.ts",
     "e2e:rec": "zsh apps/desktop/scripts/e2e-rec2.sh",
     "e2e:notes": "zsh apps/desktop/scripts/e2e-notes.sh"
   },

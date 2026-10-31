@@ -9,11 +9,13 @@
 | 功能 | 里程碑 | 状态 |
 |---|:---:|---|
 | 设备实时监听 + 档案采集(型号 / 系统 / 屏幕 / 电量 / 存储,真机已验证) | M0 | ✅ 已实现 |
-| 投屏反控(scrcpy v3.3.1 协议 + WebCodecs 解码、鼠标键盘滚轮反控、多设备、自动重连、截图到剪贴板) | M1 | ✅ 已实现(USB;无线连接入口 M2) |
+| 投屏反控(scrcpy v3.3.1 协议 + WebCodecs 解码、鼠标键盘滚轮反控、锁屏/亮屏、多设备、自动重连、旋转自适应、截图到剪贴板) | M1 | ✅ 已实现(USB + 无线) |
 | 文件互传(浏览器、拖拽到投屏窗口/文件页目录即传、拖出窗口即下载、批量下载、队列进度、APK 拖入即装、相册导出) | M2+ | ✅ 已实现 |
 | 剪贴板双向同步(手动/自动)、手机截图→电脑剪贴板、电脑剪贴板图片→手机相册、通知同步(系统通知+通知页) | M3 | ✅ 已实现 |
-| 音频转发 / 虚拟摄像头 | M4 | ⬜ 计划中 |
-| 伴侣 APK(Kotlin:免 USB 调试、通知回复、短信) | M5 | ⬜ 计划中 |
+| 无线连接(一键 tcpip / Android 11+ 配对码 / mDNS 自动发现,adb 二进制随包分发) | M2/M4 | ✅ 已实现 |
+| 音频转发、录屏(mp4)、H.265、应用面板、托盘/开机自启、笔记模块 | M4/M6 | ✅ 已实现 |
+| 虚拟摄像头(手机摄像头作为电脑虚拟摄像头) | M4 | ⬜ 计划中(docs/07) |
+| 伴侣 APK(Kotlin:mTLS+OTP+SAS 配对、通知实时同步与快捷回复、短信/通讯录+vCard 导出、来电提醒+投屏静音、剪贴板互发与加密历史、免 USB 调试常驻) | M5 | ✅ 已实现(真机探针通过;剪贴板手机→电脑方向受 Android 焦点模型限制为降级可用) |
 
 ## 架构一览
 
@@ -24,7 +26,7 @@ flowchart LR
     end
     subgraph M["主进程(Node.js)"]
         PB["preload 类型化桥"] --- HUB["IPC Hub"]
-        HUB --- SVC["六大服务<br/>Device(已实现)<br/>Mirror / Transfer / Clipboard / Notify(stub)<br/>AudioCamera(规划)"]
+        HUB --- SVC["服务<br/>Device / Mirror / Transfer / Clipboard / Notify<br/>Wireless / Apps / Note(均已实现)<br/>AudioCamera(规划)"]
     end
     UI <-->|"invoke / 事件"| PB
     SVC --> P1["@amoolink/adb<br/>基于 @u4/adbkit v5"]
@@ -41,8 +43,8 @@ flowchart LR
 ### 环境要求
 
 - Node.js ≥ 22、pnpm ≥ 10
-- 本机已安装 Android platform-tools,`adb version` 可在 PATH 中执行
 - Android 手机开启 USB 调试(无线功能需 Android 11+)
+- 无线配对/连接/mDNS 使用内置 adb 二进制(resources/bin,打包版随包分发),开发模式亦可依赖 PATH 中的 adb
 - 基准真机:StepX PZ261A(Android 16 / SDK 36 / arm64-v8a,1200×2670@520dpi)
 
 ### 安装依赖
@@ -89,7 +91,7 @@ AmooLink/
 │   └── desktop/                  # @amoolink/desktop:Electron 应用
 │       ├── src/main/             # 主进程:入口 / 窗口管理
 │       │   ├── ipc/              #   类型化 IPC 注册表(路由与校验,无业务逻辑)
-│       │   └── services/         #   DeviceService(已实现)+ Mirror/Transfer/Clipboard/Notify(stub)
+│       │   └── services/         #   Device/Mirror/Transfer/Clipboard/Notify/Wireless/Apps/Note 服务(均已实现)
 │       ├── src/preload/          # preload 类型化桥(contextBridge,invoke + 事件订阅)
 │       ├── src/renderer/         # React UI:Devices / Files / Transfers / Settings 页面
 │       └── electron-builder.yml  # 打包配置(M1 起追加 scrcpy-server.jar 等资源)
@@ -121,9 +123,11 @@ AmooLink/
 | `offline` | 连接异常 | 更换数据线 / USB 口,重新插拔 |
 | 列表为空 | 未识别 | `adb kill-server && adb devices` 自查;确认 platform-tools 已安装且在 PATH |
 
-### 无线连接(预告)
+### 无线连接
 
-Android 11+ 无线调试配对(`adb pair`)与经典 `tcpip 5555` 模式将在 M1 随投屏功能一起提供,届时桌面端可在设备页直接发起无线连接。
+桌面端「设备 → 无线连接」面板提供四种方式:一键无线(USB 在线时切 tcpip 5555)、
+配对连接(Android 11+ 六位配对码)、直接连接(IP:端口),以及 **mDNS 自动发现**
+(扫描同局域网内已开启无线调试的设备,点击即连 / 转配对,无需手动输入地址)。
 
 ## 开发指南
 
@@ -138,7 +142,7 @@ Android 11+ 无线调试配对(`adb pair`)与经典 `tcpip 5555` 模式将在 M1
   1. `apps/desktop/src/main/ipc/index.ts` 注册 handler(只做路由与校验);
   2. `apps/desktop/src/preload/index.ts` 暴露方法;
   3. `apps/desktop/src/renderer/env.d.ts` 补充类型声明,保持两端类型一致。
-- **服务 stub 与里程碑对应**:M0 仅 DeviceService 接通真实 `@amoolink/adb`;MirrorService(M1)、TransferService(M2)、ClipboardService / NotifyService(M3)、AudioCameraService(M4)当前为 stub,按里程碑逐个替换为真实实现。服务之间不横向 import,跨服务协作走进程内事件总线。
+- **服务与里程碑对应**:主进程服务 Device / Mirror / Transfer / Clipboard / Notify / Wireless / Apps / Note 均已真实实现;AudioCameraService(M4 虚拟摄像头)规划中。服务之间不横向 import,跨服务协作走进程内事件总线。
 
 ## 文档索引
 
@@ -152,6 +156,8 @@ Android 11+ 无线调试配对(`adb pair`)与经典 `tcpip 5555` 模式将在 M1
 | [docs/04-伴侣APK设计(二期).md](./docs/04-伴侣APK设计%28二期%29.md) | 伴侣 APK 设计(二期 / M5) |
 | [docs/05-安全与隐私设计.md](./docs/05-安全与隐私设计.md) | 安全与隐私设计 |
 | [docs/06-路线图与里程碑.md](./docs/06-路线图与里程碑.md) | 路线图与里程碑 |
+| [docs/07-M4M5-排期.md](./docs/07-M4M5-排期.md) | 虚拟摄像头与伴侣 APK 排期 |
+| [docs/08-笔记模块设计(M6).md](./docs/08-笔记模块设计%28M6%29.md) | 笔记模块设计(M6) |
 
 ## 致谢
 
@@ -164,7 +170,9 @@ Android 11+ 无线调试配对(`adb pair`)与经典 `tcpip 5555` 模式将在 M1
 |---|---|:---:|
 | M0 | 工程骨架:设备实时监听 + 档案采集(真机验证) | ✅ |
 | M1 | 投屏反控:scrcpy 协议 + WebCodecs(无线连接顺延 M2) | ✅ |
-| M2 | 文件互传:上传下载队列、APK 安装 | ⬜ |
+| M2 | 文件互传:上传下载队列、APK 安装 | ✅ |
 | M3 | 数据互联:剪贴板双向 + 截图 + 通知同步 | ✅ |
-| M4 | 音频转发 / 虚拟摄像头 | ⬜ |
-| M5 | 伴侣 APK(Kotlin):免 USB 调试、通知回复、短信 | ⬜ |
+| M4 | 音频转发 / 录屏 / H.265 / 应用面板 / 托盘自启 / 无线(含 mDNS) | ✅ |
+| M4+ | 虚拟摄像头(OBS 集成 → CMIO) | ⬜ |
+| M5 | 伴侣 APK(Kotlin):免 USB 调试、通知回复、短信 | ✅(真机探针通过) |
+| M6 | 笔记模块(编辑器 + 同步引擎 + 手机 App) | ✅ |

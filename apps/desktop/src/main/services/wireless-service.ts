@@ -1,4 +1,4 @@
-import { execOut, pairWireless, connectWireless, enableTcpip, mdnsServices } from '@amoolink/adb'
+import { execOut, pairWireless, connectWireless, enableTcpip, mdnsServices, type MdnsServiceInfo } from '@amoolink/adb'
 import { deviceService } from './device-service'
 
 /** 无线连接服务:经典 tcpip 5555、Android 11+ 无线调试配对、mDNS 发现。 */
@@ -31,9 +31,14 @@ class WirelessService {
     return await connectWireless(host, port)
   }
 
-  /** mDNS 发现(adb mdns services 原始文本,UI 自行展示)。 */
-  async discover(): Promise<string> {
-    return await mdnsServices()
+  /** mDNS 自动发现:解析为结构化列表;首次调用会拉起 adb mdns 后端,空结果时重试一次。 */
+  async discover(): Promise<MdnsServiceInfo[]> {
+    let list = await mdnsServices().catch(() => [] as MdnsServiceInfo[])
+    if (list.length === 0) {
+      await new Promise((r) => setTimeout(r, 1200))
+      list = await mdnsServices().catch(() => [] as MdnsServiceInfo[])
+    }
+    return list
   }
 }
 

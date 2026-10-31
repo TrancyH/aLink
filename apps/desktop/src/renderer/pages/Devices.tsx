@@ -263,11 +263,12 @@ const WIRELESS_TABS = [
   { key: 'one-tap', label: '一键无线' },
   { key: 'pair', label: '配对连接' },
   { key: 'direct', label: '直接连接' },
+  { key: 'discover', label: '自动发现' },
 ] as const
 
 type WirelessTab = (typeof WIRELESS_TABS)[number]['key']
 
-/** 无线连接面板:一键无线 / 配对连接(Android 11+)/ 直接连接三种方式切换。 */
+/** 无线连接面板:一键无线 / 配对连接(Android 11+)/ 直接连接 / mDNS 自动发现四种方式切换。 */
 function WirelessPanel({
   usbSerial,
   toast,
@@ -280,6 +281,8 @@ function WirelessPanel({
   onBack: () => void
 }) {
   const [tab, setTab] = useState<WirelessTab>('one-tap')
+  // 自动发现面板跳转配对时,预填的配对地址
+  const [pairSeed, setPairSeed] = useState<{ host: string; port: string } | null>(null)
 
   return (
     <div className="wireless-panel">
@@ -309,8 +312,18 @@ function WirelessPanel({
       {tab === 'one-tap' && (
         <OneTapPane usbSerial={usbSerial} toast={toast} onConnected={onConnected} />
       )}
-      {tab === 'pair' && <PairPane toast={toast} onConnected={onConnected} />}
+      {tab === 'pair' && <PairPane toast={toast} onConnected={onConnected} seed={pairSeed} />}
       {tab === 'direct' && <DirectPane toast={toast} onConnected={onConnected} />}
+      {tab === 'discover' && (
+        <DiscoverPane
+          toast={toast}
+          onConnected={onConnected}
+          onGoPair={(host, port) => {
+            setPairSeed({ host, port: String(port) })
+            setTab('pair')
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -367,12 +380,15 @@ function OneTapPane({
 function PairPane({
   toast,
   onConnected,
+  seed,
 }: {
   toast: (message: string) => void
   onConnected: () => void
+  /** 自动发现面板跳转时预填的配对地址(仅 pairing 端口)。 */
+  seed?: { host: string; port: string } | null
 }) {
-  const [host, setHost] = useState('')
-  const [port, setPort] = useState('')
+  const [host, setHost] = useState(seed?.host ?? '')
+  const [port, setPort] = useState(seed?.port ?? '')
   const [code, setCode] = useState('')
   const [pairing, setPairing] = useState(false)
   // 配对成功后进入第二步:连接(IP 预填配对 IP,端口默认清空)
@@ -380,6 +396,14 @@ function PairPane({
   const [connectHost, setConnectHost] = useState('')
   const [connectPort, setConnectPort] = useState('')
   const [connecting, setConnecting] = useState(false)
+
+  // 从「自动发现」跳转过来时预填配对地址
+  useEffect(() => {
+    if (!seed) return
+    setHost(seed.host)
+    setPort(seed.port)
+    setPaired(false)
+  }, [seed])
 
   const codeValid = /^\d{6}$/.test(code)
 
@@ -516,6 +540,117 @@ function PairPane({
             </button>
           </div>
         </>
+      )}
+    </div>
+  )
+}
+
+/** 方式四:自动发现 —— mDNS 扫描局域网内已开启无线调试的设备,一键连接或转配对。 */
+function DiscoverPane({
+  toast,
+  onConnected,
+  onGoPair,
+}: {
+  toast: (message: string) => void
+  onConnected: () => void
+  onGoPair: (host: string, port: number) => void
+}) {
+  const [services, setServices] = useState<
+    Array<{ kind: 'connect' | 'pairing'; host: string; port: number; instance: string }>
+  >([])
+  const [scanning, setScanning] = useState(false)
+  const [scanned, setScanned] = useState(false)
+  const [connectingKey, setConnectingKey] = useState('')
+
+  async function handleScan(): Promise<void> {
+    if (scanning) return
+    setScanning(true)
+    try {
+      const list = await window.amoolink.wirelessDiscover()
+      setServices(list)
+      setScanned(true)
+    } catch (err) {
+      toast(errText(err))
+    } finally {
+      setScanning(false)
+    }
+  }
+
+  function handleConnect(
+    service: { kind: 'connect' | 'pairing'; host: string; port: number; instance: string },
+  ): void {
+    const key = `${service.kind}|${service.host}:${service.port}`
+    if (connectingKey !== '') return
+    setConnectingKey(key)
+    window.amoolink
+      .wirelessConnect(service.host, service.port)
+      .then((res) => {
+        if (res.ok) {
+          toast('无线连接成功')
+          onConnected()
+        } else {
+          toast(res.message || '连接失败(新设备请先用「去配对」完成配对)')
+        }
+      })
+      .catch((err: unknown) => toast(errText(err)))
+      .finally(() => setConnectingKey(''))
+  }
+
+  const nameOf = (instance: string): string => instance.split('._')[0] || instance
+
+  return (
+    <div className="wireless-pane">
+      <p className="wireless-tip">
+        自动发现同一局域网内已开启「无线调试」的 Android 11+ 手机,无需手动输入地址。
+      </p>
+      <button type="button" className="btn btn-primary" disabled={scanning} onClick={() => void handleScan()}>
+        <RefreshIcon size={14} className={scanning ? 'spin' : undefined} />
+        {scanning ? '扫描中…' : scanned ? '重新扫描' : '扫描附近设备'}
+      </button>
+
+      {scanned && services.length === 0 && !scanning && (
+        <p className="wireless-note">
+          未发现设备。请在手机上打开「设置 → 开发者选项 → 无线调试」,并确认手机与电脑连接同一 Wi-Fi。
+        </p>
+      )}
+
+      {services.length > 0 && (
+        <ul className="mdns-list">
+          {services.map((service) => {
+            const key = `${service.kind}|${service.host}:${service.port}`
+            return (
+              <li key={key} className="mdns-item">
+                <span className={`mdns-badge tone-${service.kind === 'connect' ? 'success' : 'warning'}`}>
+                  {service.kind === 'connect' ? '可连接' : '需配对'}
+                </span>
+                <span className="mdns-name mono" title={service.instance}>
+                  {nameOf(service.instance)}
+                </span>
+                <span className="mdns-addr mono num">
+                  {service.host}:{service.port}
+                </span>
+                {service.kind === 'connect' ? (
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    disabled={connectingKey !== ''}
+                    onClick={() => handleConnect(service)}
+                  >
+                    {connectingKey === key ? '连接中…' : '连接'}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => onGoPair(service.host, service.port)}
+                  >
+                    去配对
+                  </button>
+                )}
+              </li>
+            )
+          })}
+        </ul>
       )}
     </div>
   )

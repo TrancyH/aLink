@@ -10,7 +10,7 @@ export default defineConfig({
       entry: resolve(__dirname, 'src/android-main.ts'),
       name: 'AmooNotesLib',
       formats: ['iife'],
-      fileName: () => 'editor.js',
+      fileName: () => 'editor.min.js',
     },
     cssCodeSplit: false,
     rollupOptions: {

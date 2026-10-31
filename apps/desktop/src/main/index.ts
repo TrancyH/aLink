@@ -8,6 +8,7 @@ import { transferService } from './services/transfer-service'
 import { notifyService } from './services/notify-service'
 import { clipboardService } from './services/clipboard-service'
 import { noteService } from './services/note-service'
+import { companionService } from './services/companion-service'
 import { settingsStore } from './settings-store'
 import { registerIpc } from './ipc'
 
@@ -212,6 +213,17 @@ if (!gotLock) {
     wireServices()
     syncTray()
     syncAutoStart()
+    // M5:伴侣 APK 通道 —— URL scheme 注册(amoolink://send?text=…) + 已配对手机自动重连
+    app.setAsDefaultProtocolClient('amoolink')
+    app.on('open-url', (event, url) => {
+      event.preventDefault()
+      const parsed = new URL(url)
+      if (parsed.host === 'send' || parsed.pathname.startsWith('//send')) {
+        const text = parsed.searchParams.get('text')
+        if (text) void companionService.sendTextToPhone(text)
+      }
+    })
+    companionService.connectAll()
     try {
       await deviceService.start()
     } catch (err) {

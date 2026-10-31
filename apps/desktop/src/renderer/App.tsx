@@ -15,6 +15,7 @@ import {
   TransferIcon,
 } from './components/Icons'
 import AppsPage from './pages/Apps'
+import DataPage from './pages/Data'
 import DevicesPage from './pages/Devices'
 import FilesPage from './pages/Files'
 import MirrorPage from './pages/Mirror'
@@ -32,6 +33,7 @@ const NAV_ITEMS = [
   { to: '/files', label: '文件', icon: FolderIcon, end: false, badge: 'M2' },
   { to: '/transfers', label: '传输', icon: TransferIcon, end: false, badge: 'M2' },
   { to: '/notifications', label: '通知', icon: BellIcon, end: false, badge: 'M3' },
+  { to: '/data', label: '数据', icon: FolderIcon, end: false, badge: 'M5' },
   { to: '/settings', label: '设置', icon: SettingsIcon, end: false, badge: null },
 ] as const
 
@@ -108,6 +110,7 @@ export default function App() {
           <Route path="/files" element={<FilesPage />} />
           <Route path="/transfers" element={<TransfersPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/data" element={<DataPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </main>

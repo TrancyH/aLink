@@ -45,6 +45,11 @@ export default function MirrorWindowPage() {
     if (!canvas) return
     const renderer = new H264CanvasRenderer(canvas)
     rendererRef.current = renderer
+    // 解码帧实际尺寸变化(旋转):同步坐标映射并回传主进程重适配窗口比例
+    renderer.onSizeChanged = (w, h) => {
+      videoSizeRef.current = { w, h }
+      window.amoolink.sendMirrorControl(serial, { type: 'video-size', width: w, height: h })
+    }
 
     const offConfig = window.amoolink.onMirrorConfig((msg) => {
       if (msg.serial !== serial) return
@@ -91,6 +96,19 @@ export default function MirrorWindowPage() {
     const offToast = window.amoolink.onMirrorToast((msg) => {
       if (msg.serial === serial) showToast(msg.payload)
     })
+    // M5-7:伴侣通道来电 → 自动静音音频转发,挂断恢复
+    const offCall = window.amoolink.onCompanionEvent('amoolink:companion:call', (raw) => {
+      const payload = raw as { state: string; contactName?: string }
+      if (payload.state === 'ringing') {
+        audioRef.current?.setMuted(true)
+        setAudioMuted(true)
+        showToast(`来电:${payload.contactName ?? '未知号码'}(音频已静音)`)
+      } else if (payload.state === 'idle') {
+        audioRef.current?.setMuted(false)
+        setAudioMuted(false)
+        showToast('通话结束,音频已恢复')
+      }
+    })
 
     return () => {
       offConfig()
@@ -98,6 +116,7 @@ export default function MirrorWindowPage() {
       offState()
       offStats()
       offToast()
+      offCall()
       offAudioMeta()
       offAudioConfig()
       offAudioFrame()
@@ -439,6 +458,9 @@ export default function MirrorWindowPage() {
         {btn('＋', '音量加', () => window.amoolink.sendMirrorControl(serial, { type: 'volume-up' }))}
         {btn('－', '音量减', () => window.amoolink.sendMirrorControl(serial, { type: 'volume-down' }))}
         {btn('☀', '亮屏', () => window.amoolink.sendMirrorControl(serial, { type: 'screen-on' }))}
+        {btn('🔒', '锁屏并熄屏(点 ☀ 唤醒;若设密码需解锁)', () =>
+          window.amoolink.sendMirrorControl(serial, { type: 'lock-screen' }),
+        )}
         {btn('⟳', '旋转', () => window.amoolink.sendMirrorControl(serial, { type: 'rotate' }))}
         {btn('☰', '通知栏', () => window.amoolink.sendMirrorControl(serial, { type: 'notifications' }))}
         {btn('✂', '截图到电脑剪贴板', takeScreenshot)}

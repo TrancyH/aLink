@@ -7,7 +7,7 @@
  * 结束:断开无线(保留 USB)
  */
 import { AdbTransport, execOut, connectWireless } from '../src/index.js'
-import { execSync } from 'node:child_process'
+import { execFileSync } from 'node:child_process'
 
 
 function fail(msg: string): never {
@@ -25,7 +25,7 @@ async function main(): Promise<void> {
   // ── 1. tcpip + 无线连接 ──
   const ip = /inet (\d+\.\d+\.\d+\.\d+)/.exec(await execOut(client, 'ip addr show wlan0'))?.[1]
   if (!ip) fail('手机未连 Wi-Fi')
-  execSync('adb -s ' + handle.serial + ' tcpip 5555', { encoding: 'utf8' })
+  execFileSync('adb', ['-s', handle.serial, 'tcpip', '5555'], { encoding: 'utf8' })
   console.log(`tcpip 已开,等待 ${ip}:5555 …`)
   let connected = false
   for (let i = 0; i < 15; i++) {
@@ -38,7 +38,7 @@ async function main(): Promise<void> {
   }
   if (!connected) fail('无线连接超时')
   await sleep(1500)
-  const devices = execSync('adb devices', { encoding: 'utf8' })
+  const devices = execFileSync('adb', ['devices'], { encoding: 'utf8' })
   const wifiLine = devices.split('\n').find((l) => l.startsWith(`${ip}:5555`))
   if (!wifiLine || !/device$/.test(wifiLine.trim())) fail(`devices 无线条目异常:${wifiLine ?? '无'}`)
   console.log(`✓ 无线连接:${wifiLine.trim()}`)
@@ -71,7 +71,7 @@ async function main(): Promise<void> {
   console.log(`✓ 应用启动:${top}`)
 
   // ── 清理:断开无线(保留 USB)──
-  execSync(`adb disconnect ${ip}:5555`, { encoding: 'utf8' })
+  execFileSync('adb', ['disconnect', `${ip}:5555`], { encoding: 'utf8' })
   await sleep(800)
   console.log('✓ 已断开无线(USB 保留)')
   console.log('M8 探针全部通过 ✓')

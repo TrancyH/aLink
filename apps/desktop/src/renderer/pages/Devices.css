@@ -219,6 +219,54 @@
 }
 .hero-action:disabled { opacity: 0.45; cursor: not-allowed; }
 
+/* 自动发现(mDNS)结果列表 */
+.mdns-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+.mdns-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border, rgba(128, 128, 128, 0.28));
+  background: color-mix(in srgb, var(--color-surface, #1c1e27) 70%, transparent);
+}
+.mdns-badge {
+  flex: none;
+  font-size: var(--font-xs, 11px);
+  padding: 2px 8px;
+  border-radius: var(--radius-full, 999px);
+}
+.mdns-badge.tone-success {
+  background: color-mix(in srgb, #34c77b 16%, transparent);
+  color: #4bd48d;
+}
+.mdns-badge.tone-warning {
+  background: color-mix(in srgb, #e6a23c 16%, transparent);
+  color: #e6a23c;
+}
+.mdns-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-sm, 12px);
+  color: var(--color-text, #e8eaf0);
+}
+.mdns-addr {
+  margin-left: auto;
+  flex: none;
+  font-size: var(--font-sm, 12px);
+  color: var(--color-text-secondary, #9aa0b0);
+}
+
 @media (max-width: 640px) {
   .hero-grid { grid-template-columns: 1fr; }
   .hero-meters { grid-template-columns: 1fr; }

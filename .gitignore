@@ -21,3 +21,6 @@ local.properties
 
 # macOS
 .DS_Store?**
+
+# Mimosa 安全扫描历史(插件产物)
+.mimosa/

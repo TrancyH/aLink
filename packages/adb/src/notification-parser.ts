@@ -73,3 +73,17 @@ export function isNoise(item: NotificationItem): boolean {
   if (!item.title && !item.text) return true
   return false
 }
+
+/**
+ * 按 App 静音(免打扰,docs/03 §6 `notify:setMuted`):pkg 命中静音表则过滤。
+ * 注意:调用方应把「完整列表」作为 diff 基线、只对 diff 结果过滤,
+ * 这样取消静音不会把静音期间的历史通知重放出来。
+ */
+export function applyMuted(
+  items: NotificationItem[],
+  mutedPkgs: ReadonlyArray<string>,
+): NotificationItem[] {
+  if (mutedPkgs.length === 0) return items
+  const muted = new Set(mutedPkgs)
+  return items.filter((n) => !muted.has(n.pkg))
+}

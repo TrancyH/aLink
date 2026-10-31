@@ -96,10 +96,40 @@ declare global {
           importance: string
         }) => void,
       ): () => void
+      listMutedApps(): Promise<string[]>
+      setNotifyMuted(pkg: string, muted: boolean): Promise<string[]>
+      onNotifyMutedChanged(callback: (mutedApps: string[]) => void): () => void
       startFileDrag(files: string[]): void
       wirelessEnable(serial: string): Promise<{ ip: string; port: number }>
       wirelessPair(host: string, port: number, code: string): Promise<{ ok: boolean; message: string }>
       wirelessConnect(host: string, port: number): Promise<{ ok: boolean; message: string }>
+      wirelessDiscover(): Promise<
+        Array<{ kind: 'connect' | 'pairing'; host: string; port: number; instance: string }>
+      >
+      companionStatus(): Promise<
+        Array<{ id: string; name: string; connected: boolean; pairedAt: number; lastSeenAt?: number }>
+      >
+      companionPair(ip: string, port: number, otp: string): Promise<{ sas: string; phoneName: string }>
+      companionForget(id: string): Promise<{ ok: boolean }>
+      companionReply(
+        phoneId: string,
+        key: string,
+        actionIdx: number,
+        inputKey: string,
+        text: string,
+      ): Promise<void>
+      companionSms(
+        phoneId: string,
+        max?: number,
+      ): Promise<Array<{ id: number; address: string; body: string; dateMs: number; type: number }>>
+      companionContacts(
+        phoneId: string,
+        max?: number,
+      ): Promise<Array<{ id: number; name: string; phones: string[] }>>
+      companionSendClipboard(text: string): Promise<void>
+      companionPullClipboard(): Promise<string>
+      companionHistory(phoneId: string): Promise<string[]>
+      onCompanionEvent(channel: string, callback: (payload: unknown) => void): () => void
       listApps(serial: string): Promise<Array<{ pkg: string; label: string }>>
       launchApp(serial: string, pkg: string): Promise<{ ok: boolean }>
       onMirrorAudioMeta(

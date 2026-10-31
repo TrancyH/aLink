@@ -31,6 +31,10 @@ export async function listDir(client: DeviceClient, path: string): Promise<FileE
 
 /** 删除设备文件/空目录;返回是否成功。 */
 export async function deletePath(client: DeviceClient, path: string): Promise<boolean> {
+  // rm 前路径合法性校验(必须绝对路径、无控制字符),与 escapeShell 双保险
+  if (!path.startsWith('/') || /[\u0000-\u001f\u007f]/.test(path)) {
+    throw new Error(`拒绝删除非法路径: ${JSON.stringify(path)}`)
+  }
   await execOut(client, `rm -rf '${escapeShell(path)}'`)
   return true
 }

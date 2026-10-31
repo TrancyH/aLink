@@ -10,6 +10,7 @@ import { notifyService } from '../services/notify-service'
 import { wirelessService } from '../services/wireless-service'
 import { appsService } from '../services/apps-service'
 import { noteService } from '../services/note-service'
+import { companionService } from '../services/companion-service'
 import { settingsStore, type AppSettings } from '../settings-store'
 
 /**
@@ -137,6 +138,10 @@ export function registerIpc(): void {
 
   // ── 通知(M3)─────────────────────────────────────────
   ipcMain.handle('amoolink:notify:list', () => notifyService.list())
+  // 按 App 免打扰(docs/03 §6 notify:setMuted)
+  ipcMain.handle('amoolink:notify:muted-list', () => notifyService.mutedApps())
+  ipcMain.handle('amoolink:notify:set-muted', (_e, pkg: string, muted: boolean) =>
+    notifyService.setMuted(pkg, muted))
 
   // ── 笔记(M6,docs/08)────────────────────────────────
   ipcMain.handle('amoolink:notes:list', () => noteService.list())
@@ -177,6 +182,30 @@ export function registerIpc(): void {
   ipcMain.handle('amoolink:wireless:connect', (_e, host: string, port: number) =>
     wirelessService.connect(host, port))
   ipcMain.handle('amoolink:wireless:discover', () => wirelessService.discover())
+
+  // ── 伴侣 APK 通道(M5)─────────────────────────────────────
+  ipcMain.handle('amoolink:companion:status', () => companionService.status())
+  ipcMain.handle(
+    'amoolink:companion:pair',
+    (_e, ip: string, port: number, otp: string) => companionService.pair(ip, port, otp),
+  )
+  ipcMain.handle('amoolink:companion:forget', (_e, id: string) => {
+    companionService.forget(id)
+    return { ok: true }
+  })
+  ipcMain.handle(
+    'amoolink:companion:reply',
+    (_e, phoneId: string, key: string, actionIdx: number, inputKey: string, text: string) =>
+      companionService.sendReply(phoneId, key, actionIdx, inputKey, text),
+  )
+  ipcMain.handle('amoolink:companion:sms', (_e, phoneId: string, max?: number) =>
+    companionService.querySms(phoneId, max))
+  ipcMain.handle('amoolink:companion:contacts', (_e, phoneId: string, max?: number) =>
+    companionService.queryContacts(phoneId, max))
+  ipcMain.handle('amoolink:companion:send-clipboard', (_e, text: string) =>
+    companionService.sendClipboard(text))
+  ipcMain.handle('amoolink:companion:pull-clipboard', () => companionService.pullClipboard())
+  ipcMain.handle('amoolink:companion:history', (_e, phoneId: string) => companionService.history(phoneId))
 
   // ── 应用面板(批次2)─────────────────────────────────
   ipcMain.handle('amoolink:apps:list', (_e, serial: string) => appsService.list(serial))

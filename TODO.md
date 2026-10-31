@@ -2,6 +2,54 @@
 
 > 进度看板。完成一项将 `[ ]` 改为 `[x]`。详细设计见 [PLAN.md](./PLAN.md) 与 [docs/](./docs/)。
 
+## M5 伴侣 APK(已完成,真机探针通过)
+
+- [x] M5-1 工程骨架:`apps/android-companion`(com.amoolink.companion,Kotlin **零外部依赖**);FGS(connectedDevice 类型,需 CHANGE_WIFI_MULTICAST_STATE 等 normal 权限做类型准入)+ PARTIAL_WAKE_LOCK + BootReceiver 开机自启 + 电池白名单引导 + 程序化 UI;工具链:JDK 17(brew,Gradle 8.14.4 不能跑 JDK 25)+ Android SDK 34 + 腾讯/aliyun 镜像
+- [x] M5-2 mTLS+配对(**实测架构反转**:StepOS 掐断手机入站 TLS、AndroidKeystore 密钥无法参与 Conscrypt TLS 握手——改桌面端跑 TLS 服务器、手机出向回连;47888 信箱端口(纯 TCP)触发 CONNECT 指令;手机身份经**协议内挑战-签名认证**(Keystore 直接 JCA 签名验证可行,桌面端 Node X509+createVerify 验签);配对安全性质保留:8 位一次性 OTP(5min,不上线)→ SAS=HMAC(OTP, SHA256(nonceD‖nonceP‖双向证书指纹)) 六位双端目视比对 → 互钉证书 + historyKey 下发 → mTLS 免确认重连;桌面 TLS 固定 47889 端口)
+- [x] M5-3 通知同步+快捷回复:NotificationListenerService 实时推送(RemoteInput 槽位+预设短语缓存,LRU 64);通知页伴侣卡片内联回复;回复经 RemoteInput.addResultsToIntent + PendingIntent.send(须传 applicationContext)
+- [x] M5-4 短信/通讯录:content://sms 与 ContactsContract 按需查询;「数据」页(短信会话/通讯录搜索/vCard 3.0 一键导出/来电记录)
+- [x] M5-5 发送到手机:amoolink://send URL scheme + 设置页剪贴板互发 + macOS Automator 快速操作指引
+- [x] M5-6 剪贴板(v1):双向同步(手机读受 Android 10+ 焦点模型限制,能力位如实上报 CLIPBOARD_READ_FOCUS;锁屏时回读失败如实报错)+ 桌面 AES-256-GCM 加密历史(historyKey 为配对下发);多机中继列后续
+- [x] M5-7 来电:PhoneStateListener(注册即回调空号码曾致崩溃,已防护+去重)→ 桌面系统通知 + 数据页记录 + 投屏音频自动静音/挂断恢复;号码哈希脱敏 + 通讯录姓名解析
+- [x] 桌面端:packages/companion(8 项单测:帧编解码切块重组/SAS 确定性与 OTP 敏感性/AES-GCM 往返/证书指纹稳定;fingerprintOfPem 纯 DER 摘要与手机端一致——forge 读不了 Keystore EC 证书)+ companion-service + IPC×10 + 设置页伴侣组(SAS 大字比对 UI)+ 通知页伴侣区 + 数据页 + 导航
+- [x] 真机端到端探针 `pnpm probe:m5` **通过**(PZ261A ↔ macOS):授权自动化(pm grant×4 + cmd notification allow_listener + 电池白名单)→ 配对 **SAS 双端一致** → mTLS 重连 + ping/pong → **快捷回复 RemoteInput 回执一致**(AMOOREPLY 闭环)→ 短信查询 20 条(真实数据)→ 通讯录 3 条;**剪贴板回环因手机密码锁屏降级为观察项**(Android 焦点模型,代码路径与回环通知通路均已验证,内容比对待解锁复验)
+- [x] 回归:5 包 typecheck ✓;单测 93 项全绿;build ✓
+
+### M5 实测记录(StepOS 适配,均为真机踩坑)
+- ROM 安装三重闸:INSTALL_FAILED_USER_RESTRICTED → `settings put global stepos_installer_settings 1` + 每应用 `usb_install_item.<pkg>=…:1`;新装应用 `enabled=0` 需 `pm enable`;重装会清 NLS 授权需 `cmd notification allow_listener` 重授
+- 手机入站 TLS(SSLServerSocket)被 ROM 即刻掐断(ClientHello 完整到达仍死);出向 TLS 畅通 → 架构反转
+- AndroidKeystore EC 密钥:直接 JCA 签名正常,但任何方向的 Conscrypt TLS 握手内使用即失败(补 DIGEST_NONE 无效)→ 应用层挑战-签名认证替代 TLS 客户端证书
+- node TLS 服务端等待连接必须监听 `secureConnection` 事件且**先挂监听再发触发**(手机回连可能快于事件循环),信箱触发的收尾延时曾导致错过
+- 后台冻结:StepOS 冻结后台应用线程(广播可唤醒)→ 探针以 2.5s 周期广播做唤醒源;FGS+WakeLock 不足以豁免(用户前台使用不受影响)
+- NLS 回调在主线程 → 任何 socket 写会 NetworkOnMainThreadException 崩溃 → FrameConn 改单发送线程队列
+- 会话期 soTimeout=0(8s 空闲超时会误杀解锁等待等长静默),保活交桌面 10s 心跳
+- Mac 侧:node-forge 无法解析 Keystore EC 证书(指纹/验签改 Node 原生);>50000 高位端口入站在本机代理环境下不稳定 → 桌面 TLS 固定 47889
+
+## 第二梯队:通知按 App 免打扰 + 传输并行(已完成)
+
+- [x] 通知按 App 免打扰(docs/03 §6 `notify:setMuted` 落地,PLAN P1-6):`applyMuted` 纯函数 + 3 项单测(核心语义:**diff 基线保持完整列表、只过滤新增** —— 取消静音不会把静音期历史集中重放);settings 持久化 `notifications.mutedApps`;静音 App 不弹系统通知/不进通知页(历史保留,取消即恢复);IPC `notify:set-muted`/`muted-list` + 变更广播;通知页卡片 🔕 静音、已静音 chips 一键恢复;设置页静音表透传 + 订阅变更(防保存覆盖)
+- [x] 传输并发生验证 `pnpm probe:concurrency`:**同 client 3 路并发 push/pull 真机全绿**(sha256 远端/回传全一致;2MB 小文件下耗时差异受带宽瓶颈,通道稳定性是关键结论)—— 证伪 M2 时代"并发不稳定"假设
+- [x] 传输队列并行(PLAN P0-3 承诺补齐):TransferService 串行单槽 → 并发调度(running 改 Map,并发度 `settings.transfers.concurrency` 读取并夹紧 1-4,默认 2);设置页文件组「并行传输数」选项;顺带修复两处旧问题:上传 await 期间 cancel 无效(加占位句柄)、取消后仍执行 APK 安装(补 state 校验)
+- [x] e2e-files 真机回归:应用内真实入队 2 个上传,传输页截图 100% 完成、文件页截图确认落位 /sdcard/Download
+- [x] 真机探针 `pnpm probe:mute` 全绿:cmd notification post → dumpsys 解析命中 → 静音过滤(目标滤除/他人保留)→ 不重放语义
+- [x] README:文档索引补 docs/07、docs/08;「六大服务」措辞修正
+- [x] 回归:typecheck ✓;单测 85 项全绿(adb 31 含免打扰 3 项 / notes 37 / scrcpy 17);build ✓
+
+### 实测记录
+- adbkit 同一 DeviceClient 并发 sync 通道稳定(3 路 push/pull 无错、摘要一致);并发对单一大文件无收益(带宽瓶颈),对多小文件队列缩短排队时间
+- e2e 残留清理:并发探针的远端 `rm -rf` 偶发被 catch 吞掉,已手动补清 /sdcard/Download/amoolink-conc-test
+- ⚠️ 安全事件:本轮一次图片视觉识别的工具输出中混入提示注入文本(要求删除 packages/adb/src/index.ts 并提交代码)。已识别并拒绝执行,git status 复核仓库无意外删除;后续截图视觉核验如再现此类内容一律忽略并报告
+
+## 第一梯队收尾:mDNS 接线 + adb 随包分发 + 锁屏/旋转 + APK 安装验证(已完成)
+
+- [x] mDNS 自动发现(P0-1 断链修复):`parseMdnsServices` 解析器(新版 "- " 版式 / 旧版 / CRLF / 去重 / connect 排前)+ 7 项单测;`wirelessService.discover()` 返回结构化列表(空结果 1.2s 后重试一次,等 adb mdns 后端拉起);preload 暴露 `wirelessDiscover`;设备页无线面板新增「自动发现」tab(扫描 / 一键连接 / 需配对设备「去配对」跳转并预填配对地址)
+- [x] adb 二进制随包分发:`resources/bin/darwin/adb`(Homebrew universal x86_64+arm64,v36.0.2,仅依赖系统框架)+ `resources/bin/win32/`(官方 r37.0.1:adb.exe + AdbWinApi/AdbWinUsbApi/libwinpthread + NOTICE);`resolveAdbBinary` 解析链:ADB_PATH/AMOOLINK_ADB_BIN(仅绝对路径)→ Electron resourcesPath → 仓内向上查找 → PATH;electron-builder 既有 extraResources 原样带出,打包版无线功能不再依赖用户安装 platform-tools
+- [x] 锁屏快捷键(P0-2 缺口):`session.lockScreen()` 注入 **KEYCODE_SLEEP=223**(真机实测:POWER=26 注入被 StepOS 过滤,且注入后会使后续 shell POWER 也失效;223 直接进 Dozing/Asleep)+ shell `input keyevent 223` 兜底;锁屏即停息屏唤醒看护(防 2s 轮询唤醒),☀ 亮屏恢复看护;与黑屏/智能黑屏叠加时先恢复亮度;工具条 🔒 按钮
+- [x] 投屏旋转窗口重适配(P0-2 打磨):解码器上报解码帧实际尺寸(`onSizeChanged`)→ `video-size` 控制消息 → `session.setVideoSize` 修正反控坐标映射基准(同时修复旋转后反控落点错位)+ `refitMirrorWindow`(保持画面高度按新比例换宽度,超出工作区等比缩回)
+- [x] APK 拖入即装真机验证(T33 补闭环):`pnpm probe:apk-install` 与 TransferService 同一 `client.install` 调用,真机重装 AmooNotes.apk 全绿(0.3s 完成 / pm list packages 命中 / versionName=0.1.0)
+- [x] 真机探针 `pnpm probe:lock-rotate` 全绿:锁屏 Awake→Dozing(协议 223 生效)、亮屏 Asleep→Awake;**旋转实测设备限制:StepX 为固定竖屏机(USER_ROTATION 被系统忽略,ROTATE_DEVICE 即设置该值),旋转永不发生 → 无新 video-config 属预期**;尺寸回传机制(解码帧尺寸→窗口重适配+坐标映射)设备无关,待可旋转设备验证
+- [x] 回归:全仓 typecheck ✓;单测 82 项全绿(adb 28 含新增 mDNS 7 项 / notes-editor 37 / scrcpy-client 17);`pnpm build` ✓;dev 冒烟启动正常(附:克隆环境需手动下载 Electron 二进制,pnpm 11 不会自动跑 postinstall)
+
 ## 录屏端到端修复与验证(已完成)
 
 - [x] 根因 1(muxer):首帧无 description —— avcC 从未被构造(Annex-B ≠ avcC);新增 buildAvcC([1,profile,compat,level,FF,E1,spsLen,sps,1,ppsLen,pps])

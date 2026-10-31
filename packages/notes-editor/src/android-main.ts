@@ -1,6 +1,6 @@
 /**
  * Android WebView 壳专用入口(无 React,IIFE bundle,暴露 window.AmooNotes)。
- * 原生工具栏通过 exec() 驱动格式命令;FileObserver 触发的远程更新走 setMarkdown()。
+ * 原生工具栏通过 applyCommand() 驱动格式命令;FileObserver 触发的远程更新走 setMarkdown()。
  */
 import { Editor } from '@tiptap/core'
 import { createNoteExtensions, editorToMarkdown } from './extensions'
@@ -12,7 +12,7 @@ export interface NoteEditorHandle {
   getMarkdown: () => string
   setTitle: (title: string) => void
   /** 原生工具栏命令:bold/italic/strike/h2/h3/ul/ol/task/quote/code */
-  exec: (command: string) => void
+  applyCommand: (command: string) => void
   focus: () => void
   destroy: () => void
 }
@@ -68,7 +68,7 @@ export function mountNoteEditor(
     setTitle: (t) => {
       titleInput.value = t
     },
-    exec(command) {
+    applyCommand(command) {
       const c = editor.chain().focus()
       switch (command) {
         case 'bold': c.toggleBold().run(); break

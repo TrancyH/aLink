@@ -22,9 +22,14 @@ export class H264CanvasRenderer {
   private configRaw: Uint8Array | null = null
   private configInjected = false
   private canvas2d: CanvasRenderingContext2D | null = null
+  private lastW = 0
+  private lastH = 0
 
   framesDecoded = 0
   framesDropped = 0
+
+  /** 解码帧实际尺寸变化(旋转/分辨率变化)时回调,供坐标映射与窗口重适配。 */
+  onSizeChanged: ((width: number, height: number) => void) | null = null
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     this.canvas2d = canvas.getContext('2d')
@@ -112,6 +117,15 @@ export class H264CanvasRenderer {
     const paint = (): void => {
       const frame = this.pending
       if (frame && this.canvas2d) {
+        if (
+          frame.displayWidth !== this.lastW ||
+          frame.displayHeight !== this.lastH
+        ) {
+          // 解码出的实际尺寸变化(如旋转):上报 + 画布跟随
+          this.lastW = frame.displayWidth
+          this.lastH = frame.displayHeight
+          this.onSizeChanged?.(frame.displayWidth, frame.displayHeight)
+        }
         if (
           this.canvas.width !== frame.displayWidth ||
           this.canvas.height !== frame.displayHeight

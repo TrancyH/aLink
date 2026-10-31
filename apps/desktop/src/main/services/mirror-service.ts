@@ -327,6 +327,34 @@ class MirrorService extends EventEmitter {
     }
   }
 
+  /**
+   * 视频尺寸变化(旋转)后的窗口重适配:内容变化必须跟随(区别于 fitMirrorWindow
+   * 的"尊重用户手动调整");保持画面高度按新比例换宽度,超出工作区则等比缩回。
+   */
+  private refitMirrorWindow(entry: MirrorEntry): void {
+    const meta = entry.meta
+    if (!meta || meta.width <= 0 || meta.height <= 0) return
+    const win = entry.win
+    if (win.isDestroyed()) return
+    const toolbar = MirrorService.TOOLBAR_PX
+    win.setAspectRatio(meta.width / meta.height, { width: 0, height: toolbar })
+    const [, curH] = win.getContentSize()
+    const area = screen.getDisplayMatching(win.getBounds()).workArea
+    const maxW = Math.max(200, area.width - 48)
+    const maxH = Math.max(200, area.height - 48 - toolbar)
+    let videoH = Math.max(1, curH - toolbar)
+    let videoW = Math.round((videoH * meta.width) / meta.height)
+    if (videoW > maxW) {
+      videoW = maxW
+      videoH = Math.round((videoW * meta.height) / meta.width)
+    }
+    if (videoH > maxH) {
+      videoH = maxH
+      videoW = Math.round((videoH * meta.width) / meta.height)
+    }
+    win.setContentSize(Math.max(200, videoW), videoH + toolbar)
+  }
+
   private createMirrorWindow(serial: string): BrowserWindow {
     const win = new BrowserWindow({
       width: 460,
@@ -553,10 +581,44 @@ class MirrorService extends EventEmitter {
         break
       case 'screen-on':
         s.screenOn()
+        // 锁屏后点亮的场景:恢复息屏唤醒看护(幂等)
+        this.startWakeGuard(serial)
         break
+      case 'lock-screen': {
+        // 与黑屏/智能黑屏叠加时先恢复亮度,保证锁屏后状态一致
+        if (entry.blackScreen || entry.autoBlacked) {
+          entry.autoBlacked = false
+          this.stopTouchWatch(entry)
+          this.applyBlackout(entry, false)
+        }
+        // KEYCODE_SLEEP=223(实测:POWER=26 注入被 StepOS 过滤且会卡住后续电源键)
+        s.lockScreen()
+        // 停止息屏唤醒看护:锁屏即允许手机休眠,2s 轮询会把它立刻唤醒
+        this.stopWakeGuard(serial)
+        // 兜底:shell input 同键位(与 HOME/BACK 同模式)
+        void deviceService
+          .getDeviceClient(serial)
+          .then((client) => (client ? client.execOut('input keyevent 223', 'utf8') : null))
+          .catch(() => undefined)
+        this.toast(serial, '已锁屏(点 ☀ 亮屏唤醒)')
+        break
+      }
       case 'rotate':
         s.rotateDevice()
         break
+      case 'video-size': {
+        // 渲染侧解码帧实际尺寸回传(旋转/分辨率变化):同步坐标映射基准并重适配窗口
+        const { width, height } = action
+        if (width <= 0 || height <= 0) break
+        const meta = entry.meta
+        if (meta && meta.width === width && meta.height === height) break
+        entry.meta = meta
+          ? { ...meta, width, height }
+          : { deviceName: '', codec: '', width, height }
+        s.setVideoSize(width, height)
+        this.refitMirrorWindow(entry)
+        break
+      }
       case 'black-screen':
         this.setBlackScreen(serial, action.on)
         break
@@ -617,9 +679,11 @@ export type ControlAction =
   | { type: 'volume-up' }
   | { type: 'volume-down' }
   | { type: 'screen-on' }
+  | { type: 'lock-screen' }
   | { type: 'rotate' }
   | { type: 'black-screen'; on: boolean }
   | { type: 'reset-video' }
+  | { type: 'video-size'; width: number; height: number }
   | { type: 'notifications' }
   | { type: 'collapse' }
   | { type: 'screenshot'; dataUrl: string }

@@ -25,18 +25,25 @@ export interface TransferTask {
   finishedAt?: number
 }
 
-/** 上传任务句柄(运行中可取消)。 */
+/** 上传/下载任务句柄(运行中可取消)。 */
 interface RunningHandle {
   cancel(): unknown
 }
 
+interface RunningEntry {
+  task: TransferTask
+  handle: RunningHandle
+}
+
 const PROGRESS_THROTTLE_MS = 200
-/** M2 串行调度:adb sync 通道逐任务执行,稳定优先(并行度提升列入 M4 优化)。 */
+/** 并行度上限(settings.transfers.concurrency 夹紧到该区间;真机探针已验证并发通道稳定)。 */
+const MIN_CONCURRENCY = 1
+const MAX_CONCURRENCY = 4
 
 class TransferService {
   private tasks = new Map<string, TransferTask>()
   private order: string[] = []
-  private running: { task: TransferTask; handle: RunningHandle } | null = null
+  private running = new Map<string, RunningEntry>()
   private lastBroadcast = 0
   private broadcastTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -110,15 +117,16 @@ class TransferService {
   cancel(id: string): void {
     const task = this.tasks.get(id)
     if (!task) return
-    if (task.state === 'running' && this.running?.task.id === id) {
+    const entry = this.running.get(id)
+    if (task.state === 'running' && entry) {
       try {
-        this.running.handle.cancel()
+        entry.handle.cancel()
       } catch {
         // 底层可能已结束
       }
+      this.running.delete(id)
       task.state = 'canceled'
       task.finishedAt = Date.now()
-      this.running = null
     } else if (task.state === 'queued') {
       task.state = 'canceled'
       task.finishedAt = Date.now()
@@ -154,19 +162,29 @@ class TransferService {
     const deadline = Date.now() + timeoutMs
     while (Date.now() < deadline) {
       const busy = this.list().some((t) => t.state === 'queued' || t.state === 'running')
-      if (!busy && !this.running) return true
+      if (!busy && this.running.size === 0) return true
       await new Promise((r) => setTimeout(r, 150))
     }
     return false
   }
 
-  // ── 调度 ──────────────────────────────────────────────
+  // ── 调度(M4 优化:并行执行,并发度 settings.transfers.concurrency)──
+
+  private concurrency(): number {
+    const raw = settingsStore.get().transfers.concurrency
+    const n = typeof raw === 'number' && Number.isFinite(raw) ? Math.floor(raw) : 2
+    return Math.min(MAX_CONCURRENCY, Math.max(MIN_CONCURRENCY, n))
+  }
 
   private pump(): void {
-    if (this.running) return
-    const next = this.list().find((t) => t.state === 'queued')
-    if (!next) return
-    void this.run(next)
+    let slots = this.concurrency() - this.running.size
+    if (slots <= 0) return
+    for (const task of this.list()) {
+      if (slots <= 0) break
+      if (task.state !== 'queued') continue
+      slots -= 1
+      void this.run(task)
+    }
   }
 
   private async run(task: TransferTask): Promise<void> {
@@ -180,22 +198,24 @@ class TransferService {
     }
     task.state = 'running'
     task.startedAt = Date.now()
+    // 先占位句柄(await 期间即可取消;真句柄就绪后替换)
+    this.running.set(task.id, { task, handle: { cancel(): void {} } })
     this.broadcast(true)
     try {
       if (task.direction === 'upload') {
         const transfer = await client.push(createReadStream(task.localPath), task.remotePath, 0o644)
-        this.running = { task, handle: transfer }
+        this.running.set(task.id, { task, handle: transfer })
         transfer.on('progress', (stats: { bytesTransferred: number }) => {
           task.transferred = stats.bytesTransferred
           this.broadcast()
         })
         await transfer.waitForEnd()
-        if (task.isInstall) {
+        if (task.isInstall && task.state === 'running') {
           await client.install(task.localPath)
         }
       } else {
         const transfer = await client.pull(task.remotePath)
-        this.running = { task, handle: transfer }
+        this.running.set(task.id, { task, handle: transfer })
         transfer.on('data', (chunk: Buffer) => {
           task.transferred += chunk.length
           this.broadcast()
@@ -220,7 +240,7 @@ class TransferService {
         task.finishedAt = Date.now()
       }
     } finally {
-      if (this.running?.task.id === task.id) this.running = null
+      this.running.delete(task.id)
       this.broadcast(true)
       this.pump()
     }

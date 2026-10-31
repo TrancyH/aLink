@@ -20,4 +20,6 @@ export {
   connectWireless,
   enableTcpip,
   mdnsServices,
+  parseMdnsServices,
+  type MdnsServiceInfo,
 } from './wireless.js'

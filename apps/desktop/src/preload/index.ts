@@ -164,6 +164,16 @@ const api = {
     return () => ipcRenderer.removeListener('amoolink:notify:new', listener)
   },
 
+  // ── 通知按 App 免打扰(docs/03 §6)─────────────────────
+  listMutedApps: (): Promise<string[]> => ipcRenderer.invoke('amoolink:notify:muted-list'),
+  setNotifyMuted: (pkg: string, muted: boolean): Promise<string[]> =>
+    ipcRenderer.invoke('amoolink:notify:set-muted', pkg, muted),
+  onNotifyMutedChanged: (callback: (mutedApps: string[]) => void): (() => void) => {
+    const listener = (_e: IpcRendererEvent, mutedApps: string[]): void => callback(mutedApps)
+    ipcRenderer.on('amoolink:notify:muted-changed', listener)
+    return () => ipcRenderer.removeListener('amoolink:notify:muted-changed', listener)
+  },
+
   // ── 系统级拖出(M2+ 拖拽增强;须在 dragstart 同步链路内调用)──
   startFileDrag: (files: string[]): void => {
     ipcRenderer.send('amoolink:transfer:start-drag', files)
@@ -176,6 +186,9 @@ const api = {
     ipcRenderer.invoke('amoolink:wireless:pair', host, port, code),
   wirelessConnect: (host: string, port: number): Promise<{ ok: boolean; message: string }> =>
     ipcRenderer.invoke('amoolink:wireless:connect', host, port),
+  wirelessDiscover: (): Promise<
+    Array<{ kind: 'connect' | 'pairing'; host: string; port: number; instance: string }>
+  > => ipcRenderer.invoke('amoolink:wireless:discover'),
 
   // ── 投屏音频/录屏(批次3)────────────────────────────
   onMirrorAudioMeta: (callback: (msg: { serial: string; payload: { codecId: number } }) => void): (() => void) => {
@@ -204,6 +217,38 @@ const api = {
   },
   saveRecording: (serial: string, bytes: Uint8Array, dir: string): Promise<{ ok: boolean; path: string }> =>
     ipcRenderer.invoke('amoolink:mirror:save-recording', serial, bytes, dir),
+
+  // ── 伴侣 APK 通道(M5)────────────────────────────────
+  companionStatus: (): Promise<
+    Array<{ id: string; name: string; connected: boolean; pairedAt: number; lastSeenAt?: number }>
+  > => ipcRenderer.invoke('amoolink:companion:status'),
+  companionPair: (ip: string, port: number, otp: string): Promise<{ sas: string; phoneName: string }> =>
+    ipcRenderer.invoke('amoolink:companion:pair', ip, port, otp),
+  companionForget: (id: string): Promise<{ ok: boolean }> =>
+    ipcRenderer.invoke('amoolink:companion:forget', id),
+  companionReply: (phoneId: string, key: string, actionIdx: number, inputKey: string, text: string): Promise<void> =>
+    ipcRenderer.invoke('amoolink:companion:reply', phoneId, key, actionIdx, inputKey, text),
+  companionSms: (
+    phoneId: string,
+    max?: number,
+  ): Promise<Array<{ id: number; address: string; body: string; dateMs: number; type: number }>> =>
+    ipcRenderer.invoke('amoolink:companion:sms', phoneId, max),
+  companionContacts: (
+    phoneId: string,
+    max?: number,
+  ): Promise<Array<{ id: number; name: string; phones: string[] }>> =>
+    ipcRenderer.invoke('amoolink:companion:contacts', phoneId, max),
+  companionSendClipboard: (text: string): Promise<void> =>
+    ipcRenderer.invoke('amoolink:companion:send-clipboard', text),
+  companionPullClipboard: (): Promise<string> =>
+    ipcRenderer.invoke('amoolink:companion:pull-clipboard'),
+  companionHistory: (phoneId: string): Promise<string[]> =>
+    ipcRenderer.invoke('amoolink:companion:history', phoneId),
+  onCompanionEvent: (channel: string, callback: (payload: unknown) => void): (() => void) => {
+    const listener = (_e: IpcRendererEvent, payload: unknown): void => callback(payload)
+    ipcRenderer.on(channel, listener)
+    return () => ipcRenderer.removeListener(channel, listener)
+  },
 
   // ── 应用面板(批次2)─────────────────────────────────
   listApps: (serial: string): Promise<Array<{ pkg: string; label: string }>> =>

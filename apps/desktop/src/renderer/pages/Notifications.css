@@ -117,3 +117,89 @@
   min-height: 280px;
   display: flex;
 }
+
+/* ---------- 按 App 免打扰 ---------- */
+
+.notif-mute {
+  flex-shrink: 0;
+  padding: 2px 7px;
+  font-size: var(--font-size-xs);
+  line-height: 1.4;
+}
+.notif-mute.active {
+  color: var(--color-accent-text, #8b93ff);
+  border-color: color-mix(in srgb, var(--color-accent, #6b76f2) 55%, transparent);
+}
+
+.notif-muted-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+}
+.notif-muted-label {
+  flex-shrink: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+.notif-muted-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.notif-muted-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 11px;
+  border-radius: var(--radius-full, 999px);
+  border: 1px solid var(--color-border, rgba(128, 128, 128, 0.28));
+  background: color-mix(in srgb, var(--color-surface, #1c1e27) 75%, transparent);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+}
+.notif-muted-chip:hover {
+  border-color: var(--color-accent, #6b76f2);
+  color: var(--color-text, #e8eaf0);
+}
+
+/* 伴侣通道通知与快捷回复(M5-3) */
+.companion-reply {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.companion-hints {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.companion-hint-chip {
+  padding: 3px 10px;
+  border-radius: var(--radius-full, 999px);
+  border: 1px solid var(--color-border, rgba(128, 128, 128, 0.28));
+  background: color-mix(in srgb, var(--color-surface, #1c1e27) 75%, transparent);
+  color: var(--color-text-secondary, #9aa0b0);
+  font-size: var(--font-xs, 11px);
+  cursor: pointer;
+}
+.companion-hint-chip:hover {
+  border-color: var(--color-accent, #6b76f2);
+  color: var(--color-text, #e8eaf0);
+}
+.companion-reply-input {
+  flex: 1;
+  min-width: 160px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border, rgba(128, 128, 128, 0.28));
+  background: var(--color-surface, #1c1e27);
+  color: var(--color-text, #e8eaf0);
+  font-size: var(--font-sm, 12px);
+}
+.companion-reply-note {
+  margin: 0;
+}

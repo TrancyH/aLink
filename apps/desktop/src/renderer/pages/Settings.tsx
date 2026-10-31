@@ -24,8 +24,11 @@ interface SettingsForm {
   audio: boolean
   videoCodec: 'h264' | 'h265'
   downloadDir: string
+  transferConcurrency: number
   clipboardMode: ClipboardMode
   keepHistory: boolean
+  /** 通知按 App 静音表(通知页维护,此处仅透传防止保存时丢字段)。 */
+  mutedApps: string[]
 }
 
 const DEFAULT_FORM: SettingsForm = {
@@ -43,8 +46,10 @@ const DEFAULT_FORM: SettingsForm = {
   audio: true,
   videoCodec: 'h264',
   downloadDir: '',
+  transferConcurrency: 2,
   clipboardMode: 'manual',
   keepHistory: false,
+  mutedApps: [],
 }
 
 const RESOLUTION_OPTIONS = [
@@ -84,8 +89,10 @@ function fromSettings(s: AppSettings): SettingsForm {
     audio: s.mirror.audio,
     videoCodec: s.mirror.videoCodec,
     downloadDir: s.files.downloadDir,
+    transferConcurrency: s.transfers.concurrency,
     clipboardMode: s.privacy.clipboardSyncMode,
     keepHistory: s.privacy.keepHistory,
+    mutedApps: s.notifications.mutedApps,
   }
 }
 
@@ -93,7 +100,7 @@ function fromSettings(s: AppSettings): SettingsForm {
 function toPatch(f: SettingsForm): Partial<AppSettings> {
   return {
     general: { language: f.language, autoStart: f.autoStart, tray: f.tray },
-    notifications: { enabled: f.notificationsEnabled },
+    notifications: { enabled: f.notificationsEnabled, mutedApps: f.mutedApps },
     notes: { autoSync: f.notesAutoSync },
     mirror: {
       maxSize: f.maxSize,
@@ -106,6 +113,7 @@ function toPatch(f: SettingsForm): Partial<AppSettings> {
       videoCodec: f.videoCodec,
     },
     files: { downloadDir: f.downloadDir },
+    transfers: { concurrency: f.transferConcurrency },
     privacy: { clipboardSyncMode: f.clipboardMode, keepHistory: f.keepHistory },
   }
 }
@@ -212,6 +220,15 @@ export default function SettingsPage() {
     return () => {
       disposed = true
     }
+  }, [])
+
+  // 通知页的按 App 静音即时同步进表单(透传字段),避免本页保存时写回旧静音表;
+  // 表单与快照因此不一致,会随 500ms 防抖自然持久化
+  useEffect(() => {
+    const unsubscribe = window.amoolink.onNotifyMutedChanged((mutedApps) => {
+      setForm((prev) => ({ ...prev, mutedApps }))
+    })
+    return unsubscribe
   }, [])
 
   // 变更后 500ms 防抖持久化;与最近快照一致时跳过,失败静默。
@@ -420,6 +437,22 @@ export default function SettingsPage() {
               </button>
             </div>
           </SettingRow>
+          <SettingRow
+            title="并行传输数"
+            desc="同时上传/下载的任务数(1-4)。真机已验证并发通道稳定;单一大文件不受影响"
+          >
+            <Segmented<number>
+              ariaLabel="并行传输数"
+              value={form.transferConcurrency}
+              onChange={(v) => update('transferConcurrency', v)}
+              options={[
+                { value: 1, label: '1' },
+                { value: 2, label: '2' },
+                { value: 3, label: '3' },
+                { value: 4, label: '4' },
+              ]}
+            />
+          </SettingRow>
         </section>
 
         {/* 隐私 */}
@@ -450,7 +483,167 @@ export default function SettingsPage() {
             />
           </SettingRow>
         </section>
+
+        {/* 伴侣 APK(M5) */}
+        <CompanionGroup />
       </div>
+    </section>
+  )
+}
+
+/* ---------- 伴侣 APK 通道(M5)---------- */
+
+interface PhoneStatus {
+  id: string
+  name: string
+  connected: boolean
+  pairedAt: number
+  lastSeenAt?: number
+}
+
+/**
+ * 伴侣设备组:配对(IP/端口/一次性配对码 → SAS 六位目视比对)、已配对手机管理、
+ * 剪贴板互发与历史、「发送到手机」系统集成说明(M5-5)。
+ */
+function CompanionGroup() {
+  const [phones, setPhones] = useState<PhoneStatus[]>([])
+  const [ip, setIp] = useState('')
+  const [port, setPort] = useState('47888')
+  const [otp, setOtp] = useState('')
+  const [pairing, setPairing] = useState(false)
+  const [sas, setSas] = useState<{ sas: string; phoneName: string } | null>(null)
+  const [note, setNote] = useState('')
+
+  const refresh = (): void => {
+    void window.amoolink.companionStatus().then(setPhones).catch(() => undefined)
+  }
+
+  useEffect(() => {
+    refresh()
+    const offStatus = window.amoolink.onCompanionEvent('amoolink:companion:status', () => refresh())
+    const offPaired = window.amoolink.onCompanionEvent('amoolink:companion:paired', () => {
+      setSas(null)
+      setNote('配对完成')
+      refresh()
+    })
+    const offFailed = window.amoolink.onCompanionEvent('amoolink:companion:pair-failed', (p) => {
+      const payload = p as { message?: string }
+      setSas(null)
+      setNote(`配对未完成:${payload.message ?? '手机端未确认'}`)
+    })
+    const offToast = window.amoolink.onCompanionEvent('amoolink:companion:toast', (p) => {
+      const payload = p as { message?: string }
+      if (payload.message) setNote(payload.message)
+    })
+    return () => {
+      offStatus()
+      offPaired()
+      offFailed()
+      offToast()
+    }
+  }, [])
+
+  const startPair = (): void => {
+    const p = Number.parseInt(port, 10)
+    if (!/^\d+\.\d+\.\d+\.\d+$/.test(ip.trim()) || !(p > 0 && p < 65536) || !/^[A-Z0-9]{8}$/i.test(otp.trim())) {
+      setNote('请填写手机端显示的 IP、端口与 8 位配对码')
+      return
+    }
+    setPairing(true)
+    setNote('')
+    window.amoolink
+      .companionPair(ip.trim(), p, otp.trim().toUpperCase())
+      .then((res) => {
+        setSas(res)
+        setNote('请与手机屏幕上的 6 位数字比对,一致后在手机上点「确认配对」')
+      })
+      .catch((err: unknown) => setNote(err instanceof Error ? err.message : String(err)))
+      .finally(() => setPairing(false))
+  }
+
+  const sendClipboard = (): void => {
+    void navigator.clipboard
+      .readText()
+      .then((text) => window.amoolink.companionSendClipboard(text))
+      .then(() => setNote('电脑剪贴板已发送到手机'))
+      .catch((err: unknown) => setNote(err instanceof Error ? err.message : String(err)))
+  }
+
+  const pullClipboard = (): void => {
+    void window.amoolink
+      .companionPullClipboard()
+      .then((text) => {
+        void navigator.clipboard.writeText(text)
+        setNote(`已同步手机剪贴板:${text.slice(0, 30)}`)
+      })
+      .catch((err: unknown) => setNote(err instanceof Error ? err.message : String(err)))
+  }
+
+  return (
+    <section className="card settings-group">
+      <h2 className="settings-group-title">
+        伴侣设备(手机 App)
+        <span className="badge badge-accent badge-plain">M5</span>
+      </h2>
+
+      <SettingRow
+        title="配对新手机"
+        desc="手机安装 AmooLink 伴侣 App 后,在手机上点「添加电脑」,把屏幕显示的地址与 8 位配对码填到这里"
+      >
+        <div className="companion-form">
+          <input className="companion-input mono" placeholder="192.168.1.23" value={ip}
+            onChange={(e) => setIp(e.target.value)} aria-label="手机 IP" />
+          <input className="companion-input mono num" placeholder="47888" value={port}
+            onChange={(e) => setPort(e.target.value)} aria-label="端口" />
+          <input className="companion-input mono" placeholder="8 位配对码" value={otp} maxLength={8}
+            onChange={(e) => setOtp(e.target.value.toUpperCase())} aria-label="配对码" />
+          <button type="button" className="btn" disabled={pairing || sas !== null} onClick={startPair}>
+            {pairing ? '连接中…' : '开始配对'}
+          </button>
+        </div>
+      </SettingRow>
+
+      {sas && (
+        <div className="companion-sas" role="status">
+          <p className="companion-sas-title">比对码(SAS)</p>
+          <p className="companion-sas-code num">{sas.sas}</p>
+          <p className="companion-sas-desc">与手机屏幕数字一致 → 在手机上点「确认配对」;不一致 → 取消并重试</p>
+        </div>
+      )}
+
+      {note && <p className="companion-note">{note}</p>}
+
+      {phones.length > 0 && (
+        <SettingRow title="已配对手机" desc="证书钉扎连接;删除后需重新配对">
+          <ul className="companion-phones">
+            {phones.map((p) => (
+              <li key={p.id} className="companion-phone">
+                <span className={`companion-dot${p.connected ? ' on' : ''}`} />
+                <span className="companion-phone-name">{p.name}</span>
+                <span className="companion-phone-state">{p.connected ? '在线' : '离线'}</span>
+                <button type="button" className="btn btn-ghost btn-sm"
+                  onClick={() => void window.amoolink.companionForget(p.id)}>
+                  忘记
+                </button>
+              </li>
+            ))}
+          </ul>
+        </SettingRow>
+      )}
+
+      <SettingRow title="剪贴板互发" desc="电脑 ↔ 已配对手机(无需 USB/投屏;历史在本机加密保存)">
+        <div className="companion-actions">
+          <button type="button" className="btn btn-sm" onClick={sendClipboard}>发送剪贴板 → 手机</button>
+          <button type="button" className="btn btn-sm" onClick={pullClipboard}>拉取手机剪贴板</button>
+        </div>
+      </SettingRow>
+
+      <SettingRow
+        title="发送到手机(系统集成)"
+        desc="已注册 amoolink:// 协议:任何工具执行 open 'amoolink://send?text=…' 即可把文本发到手机剪贴板;macOS 可用 Automator 建一个「快速操作」运行该命令,即可加入右键菜单"
+      >
+        <span className="companion-hint mono num">open "amoolink://send?text=hello"</span>
+      </SettingRow>
     </section>
   )
 }

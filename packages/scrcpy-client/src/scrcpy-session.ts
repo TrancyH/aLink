@@ -589,11 +589,30 @@ export class ScrcpySession extends EventEmitter {
   }
 
   /**
+   * 锁屏并熄屏:注入 KEYCODE_SLEEP=223(StepX 实测:POWER=26 注入会被 StepOS
+   * 过滤并使后续 POWER 失效,SLEEP 直接进 Dozing/Asleep 且不依赖 POWER 键逻辑)。
+   * 若设密码则锁在锁屏界面;调用方需暂停息屏唤醒看护,避免刚锁的屏被自动唤醒。
+   */
+  lockScreen(): void {
+    this.injectKey(1, 223) // KEYCODE_SLEEP down
+    this.injectKey(0, 223) // up
+  }
+
+  /**
    * 请求服务端重启视频通道(RESET_VIDEO, v3 type=17):
    * 立即下发新 config(SPS/PPS)+ 关键帧 —— 录制从任意时刻开始也能拿到 I 帧。
    */
   resetVideo(): void {
     this.send(Buffer.from([17]))
+  }
+
+  /**
+   * 视频尺寸变化(旋转)后更新坐标映射基准:注入编码按"视频像素 / 屏幕尺寸"归一化,
+   * 尺寸不同步会使反控落点错位。由渲染侧解码帧实际尺寸回传驱动。
+   */
+  setVideoSize(width: number, height: number): void {
+    if (!this.meta) return
+    this.meta = { ...this.meta, width, height }
   }
 
   /**

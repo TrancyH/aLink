@@ -1,0 +1,170 @@
+/* 数据页(M5):短信 / 通讯录 / 来电 */
+
+.data-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.data-tabs {
+  display: flex;
+  gap: 8px;
+}
+.data-tab {
+  padding: 7px 16px;
+  border-radius: var(--radius-full, 999px);
+  border: 1px solid var(--color-border, rgba(128, 128, 128, 0.28));
+  background: var(--color-surface, #1c1e27);
+  color: var(--color-text-secondary, #9aa0b0);
+  font-size: var(--font-sm, 12px);
+  cursor: pointer;
+}
+.data-tab.active {
+  border-color: var(--color-accent, #6b76f2);
+  color: var(--color-text, #e8eaf0);
+  background: color-mix(in srgb, var(--color-accent, #6b76f2) 14%, transparent);
+}
+
+.data-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: calc(100vh - 260px);
+  overflow-y: auto;
+}
+.data-hint,
+.data-empty {
+  color: var(--color-text-secondary, #9aa0b0);
+  font-size: var(--font-sm, 12px);
+}
+.data-empty {
+  padding: 40px 20px;
+  text-align: center;
+}
+.empty-title {
+  font-size: var(--font-md, 13px);
+  color: var(--color-text, #e8eaf0);
+  margin: 0 0 6px;
+}
+.empty-desc,
+.data-hint {
+  margin: 0;
+}
+.data-search {
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border, rgba(128, 128, 128, 0.28));
+  background: var(--color-surface, #1c1e27);
+  color: var(--color-text, #e8eaf0);
+}
+
+/* 短信会话 */
+.sms-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sms-thread {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-surface, #1c1e27) 70%, transparent);
+}
+.sms-thread-head {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+}
+.sms-address {
+  font-size: var(--font-sm, 12px);
+  color: var(--color-accent-text, #8b93ff);
+}
+.sms-count {
+  font-size: var(--font-xs, 11px);
+  color: var(--color-text-tertiary);
+}
+.sms-time {
+  margin-left: auto;
+  font-size: var(--font-xs, 11px);
+  color: var(--color-text-tertiary);
+}
+.sms-snippet {
+  margin: 6px 0 0;
+  font-size: var(--font-sm, 12px);
+  color: var(--color-text-secondary, #9aa0b0);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* 通讯录 */
+.contact-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.contact-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-surface, #1c1e27) 70%, transparent);
+}
+.contact-name {
+  min-width: 96px;
+  font-size: var(--font-md, 13px);
+}
+.contact-phones {
+  font-size: var(--font-sm, 12px);
+  color: var(--color-text-secondary, #9aa0b0);
+}
+
+/* 来电 */
+.call-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.call-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-surface, #1c1e27) 70%, transparent);
+}
+.call-state {
+  font-size: var(--font-xs, 11px);
+  padding: 2px 8px;
+  border-radius: var(--radius-full, 999px);
+}
+.call-state.ringing {
+  background: color-mix(in srgb, #34c77b 16%, transparent);
+  color: #4bd48d;
+}
+.call-state.offhook {
+  background: color-mix(in srgb, #e6a23c 16%, transparent);
+  color: #e6a23c;
+}
+.call-state.idle {
+  background: color-mix(in srgb, #9aa0b0 14%, transparent);
+  color: var(--color-text-secondary, #9aa0b0);
+}
+.call-name {
+  font-size: var(--font-md, 13px);
+}
+.call-time {
+  margin-left: auto;
+  font-size: var(--font-xs, 11px);
+  color: var(--color-text-tertiary);
+}
