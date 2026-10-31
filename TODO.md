@@ -219,5 +219,5 @@
 
 - [x] M6-1 桌面本地笔记(packages/notes-editor + note-service + Notes 页 + 设置开关)
 - [x] M6-2 同步引擎(manifest 比对 + tombstone + 冲突副本)+ 单测(37 项)
-- [x] M6-3 Android 笔记 App(WebView 壳,编辑器离线 bundle,APK 已装真机)
+- [x] M6-3 Android 笔记 App(WebView 壳,编辑器离线 bundle,APK 已装真机)——**已拆分为独立仓库 [ANotes](https://github.com/TrancyH/ANotes)**(平级目录 `../ANotes`,android/ + editor/,独立演进;本仓保留桌面内核与同步,开发态安装路径指向 `../ANotes/android/.../app-debug.apk`)
 - [x] M6-4 真机端到端 A/B/C/D 全绿(双向/冲突双副本/删除传播)+ e2e:notes + 生产版打包验收(手机写入→桌面 10s 内显示)

@@ -491,13 +491,13 @@ class NoteService {
     }
   }
 
-  /** 伴侣 APK 安装(M6-3 构建产物;开发态直接指 apk 输出路径)。 */
+  /** 伴侣 APK 安装(打包态用 resources 分发件;开发态指兄弟仓库 ANotes 的 apk 输出)。 */
   async installPhoneApp(serial: string): Promise<{ ok: boolean; message: string }> {
     const client = await deviceService.getDeviceClient(serial)
     if (!client) return { ok: false, message: '设备已断开' }
     const apkPath = app.isPackaged
       ? join(process.resourcesPath, 'resources', 'android', 'AmooNotes.apk')
-      : join(app.getAppPath(), '..', '..', 'apps', 'android-notes', 'app', 'build', 'outputs', 'apk', 'debug', 'app-debug.apk')
+      : join(app.getAppPath(), '..', '..', '..', 'ANotes', 'android', 'app', 'build', 'outputs', 'apk', 'debug', 'app-debug.apk')
     try {
       await client.install(apkPath)
       return { ok: true, message: '笔记 App 已安装到手机' }

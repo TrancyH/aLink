@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "笔记模块共享内核:数据类型、Markdown frontmatter 序列化、Tiptap 编辑器封装(桌面 React / Android WebView 双端复用)",
+  "description": "笔记模块桌面内核:数据类型、Markdown frontmatter 序列化、同步引擎、Tiptap 编辑器封装(桌面 React;Android WebView 入口已拆分至独立仓库 ANotes/editor)",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
@@ -14,16 +14,11 @@
     "./react": {
       "types": "./src/react.ts",
       "default": "./src/react.ts"
-    },
-    "./android": {
-      "types": "./src/android-main.ts",
-      "default": "./src/android-main.ts"
     }
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "vitest run",
-    "build:android": "vite build --config vite.android.config.ts"
+    "test": "vitest run"
   },
   "dependencies": {
     "@tiptap/core": "^3.7.0",
