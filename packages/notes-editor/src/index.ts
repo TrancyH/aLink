@@ -1,6 +1,7 @@
 export type {
   NoteMeta,
   NoteFile,
+  NoteColor,
   NoteListItem,
   ManifestEntry,
   Manifest,
@@ -12,6 +13,7 @@ export {
   parseNote,
   serializeNote,
   markdownToText,
+  matchesNoteQuery,
   noteExcerpt,
   noteWordCount,
 } from './frontmatter'

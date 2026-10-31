@@ -154,6 +154,10 @@ export function registerIpc(): void {
     return { ok: true }
   })
   ipcMain.handle('amoolink:notes:remove', (_e, id: string) => noteService.remove(id))
+  ipcMain.handle('amoolink:notes:trash-list', () => noteService.trashList())
+  ipcMain.handle('amoolink:notes:restore', (_e, id: string) => noteService.restore(id))
+  ipcMain.handle('amoolink:notes:open-on-phone', (_e, serial: string, id: string) =>
+    noteService.openOnPhone(serial, id))
   ipcMain.handle('amoolink:notes:sync-now', (_e, serial?: string) => noteService.syncNow(serial))
   ipcMain.handle('amoolink:notes:state', () => noteService.getState())
   ipcMain.handle('amoolink:notes:install-app', (_e, serial: string) => noteService.installPhoneApp(serial))

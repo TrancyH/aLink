@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { DeviceInfo } from '@amoolink/adb'
 
 /**
@@ -229,6 +229,10 @@ export interface NoteListItemView {
   pinned: boolean
   excerpt: string
   wordCount: number
+  /** v2:回收站删除时间(ISO);null = 存活笔记。 */
+  trashedAt: string | null
+  /** 正文全文(主进程随列表下发,全文搜索用)。 */
+  markdown: string
 }
 
 function asNoteListItem(raw: unknown): NoteListItemView | null {
@@ -243,6 +247,8 @@ function asNoteListItem(raw: unknown): NoteListItemView | null {
     pinned: o.pinned === true,
     excerpt: typeof o.excerpt === 'string' ? o.excerpt : '',
     wordCount: typeof o.wordCount === 'number' ? o.wordCount : 0,
+    trashedAt: typeof o.trashedAt === 'string' ? o.trashedAt : null,
+    markdown: typeof o.markdown === 'string' ? o.markdown : '',
   }
 }
 
@@ -323,4 +329,20 @@ export function useNotes(): {
   }, [])
 
   return { notes, syncState, reload }
+}
+
+/** 回收站列表钩子(v2 trashedAt):初始拉取;笔记变化广播(恢复/同步/删除)时重拉。 */
+export function useTrashNotes(): { trashed: NoteListItemView[]; reloadTrash: () => void } {
+  const [trashed, setTrashed] = useState<NoteListItemView[]>([])
+  const reloadTrash = useCallback((): void => {
+    void window.amoolink
+      .listTrashedNotes()
+      .then((list) => setTrashed(list.map(asNoteListItem).filter((n): n is NoteListItemView => n !== null)))
+      .catch(() => undefined)
+  }, [])
+  useEffect(() => {
+    reloadTrash()
+    return window.amoolink.onNotesChanged(reloadTrash)
+  }, [reloadTrash])
+  return { trashed, reloadTrash }
 }

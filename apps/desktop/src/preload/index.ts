@@ -265,6 +265,10 @@ const api = {
   pinNote: (id: string, pinned: boolean): Promise<{ ok: boolean }> =>
     ipcRenderer.invoke('amoolink:notes:pin', id, pinned),
   removeNote: (id: string): Promise<void> => ipcRenderer.invoke('amoolink:notes:remove', id),
+  listTrashedNotes: (): Promise<NoteListItem[]> => ipcRenderer.invoke('amoolink:notes:trash-list'),
+  restoreNote: (id: string): Promise<NoteFile | null> => ipcRenderer.invoke('amoolink:notes:restore', id),
+  openNoteOnPhone: (serial: string, id: string): Promise<{ ok: boolean; message: string }> =>
+    ipcRenderer.invoke('amoolink:notes:open-on-phone', serial, id),
   syncNotesNow: (serial?: string): Promise<SyncState> => ipcRenderer.invoke('amoolink:notes:sync-now', serial),
   getNotesState: (): Promise<SyncState> => ipcRenderer.invoke('amoolink:notes:state'),
   installNotesApp: (serial: string): Promise<{ ok: boolean; message: string }> =>

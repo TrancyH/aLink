@@ -1,15 +1,27 @@
-import type { NoteFile } from './types'
-export type { NoteFile }
+import { NOTE_COLORS, type NoteColor, type NoteFile } from './types'
+export type { NoteColor, NoteFile }
 
 /**
- * 笔记 .md 文件 ←→ NoteFile 的序列化(纯函数,三端共用)。
- * frontmatter 为固定 schema 的 YAML 子集(id/title/createdAt/updatedAt/pinned),
+ * 笔记 .md 文件 ←→ NoteFile 的序列化(纯函数,三端共用,与 ANotes editor/src/frontmatter.ts 同源)。
+ * frontmatter 为固定 schema 的 YAML 子集,v2 共 8 字段
+ * (id/title/createdAt/updatedAt/pinned/color/trashedAt/remindAt,固定顺序,全量写入),
  * 不引入 yaml 依赖;损坏字段尽力还原,永不抛错。
+ * v1(5 字段)旧文件读取时缺失字段按缺省值处理,首次保存补齐为 v2。
  */
 
 export function createNote(markdown = ''): NoteFile {
   const now = new Date().toISOString()
-  return { id: makeNoteId(), title: '', createdAt: now, updatedAt: now, pinned: false, markdown }
+  return {
+    id: makeNoteId(),
+    title: '',
+    createdAt: now,
+    updatedAt: now,
+    pinned: false,
+    color: 'default',
+    trashedAt: null,
+    remindAt: null,
+    markdown,
+  }
 }
 
 /** `yyyyMMdd-HHmmss-xxxxx`(随机后缀 36 进制,双端独立生成不冲突)。 */
@@ -19,11 +31,18 @@ export function makeNoteId(now = new Date()): string {
     now.getHours(),
     2,
   )}${p(now.getMinutes(), 2)}${p(now.getSeconds(), 2)}`
-  const rand = Math.random().toString(36).slice(2, 7)
-  return `${stamp}-${rand}`
+  // 后缀必须恰好 5 位:手机端 idPattern 严格定长,短后缀会被 writeNote 拒绝
+  return `${stamp}-${randomSuffix5()}`
 }
 
-/** 序列化为 .md 文件内容(frontmatter + 正文)。 */
+/** 5 位 36 进制随机后缀(crypto 随机源;三端 Electron 主/渲染进程均可用)。 */
+function randomSuffix5(): string {
+  const buf = new Uint32Array(1)
+  crypto.getRandomValues(buf)
+  return buf[0].toString(36).slice(0, 5).padEnd(5, '0')
+}
+
+/** 序列化为 .md 文件内容(frontmatter + 正文,v2 全量 8 字段)。 */
 export function serializeNote(note: NoteFile): string {
   const lines = [
     '---',
@@ -32,6 +51,9 @@ export function serializeNote(note: NoteFile): string {
     `createdAt: ${note.createdAt}`,
     `updatedAt: ${note.updatedAt}`,
     `pinned: ${note.pinned}`,
+    `color: ${note.color}`,
+    `trashedAt: ${note.trashedAt ?? 'null'}`,
+    `remindAt: ${note.remindAt ?? 'null'}`,
     '---',
     '',
     note.markdown,
@@ -54,11 +76,26 @@ export function parseNote(raw: string): NoteFile {
     createdAt: validIso(fields['createdAt']) ?? new Date().toISOString(),
     updatedAt: validIso(fields['updatedAt']) ?? new Date().toISOString(),
     pinned: fields['pinned'] === true,
+    color: parseColor(fields['color']),
+    trashedAt: validIsoOrNull(fields['trashedAt']),
+    remindAt: validIsoOrNull(fields['remindAt']),
     markdown,
   }
 }
 
 // ── 内部 ──────────────────────────────────────────────
+
+function parseColor(v: unknown): NoteColor {
+  return typeof v === 'string' && (NOTE_COLORS as readonly string[]).includes(v)
+    ? (v as NoteColor)
+    : 'default'
+}
+
+/** v2 时间字段:null 字面量 / 缺失 / 非法值 → null。 */
+function validIsoOrNull(v: unknown): string | null {
+  if (v === undefined || v === null || v === 'null' || v === '') return null
+  return validIso(v) ?? null
+}
 
 function splitFrontmatter(raw: string): {
   fields: Record<string, string | boolean>
@@ -121,6 +158,14 @@ export function noteExcerpt(markdown: string, max = 60): string {
 export function noteWordCount(markdown: string): number {
   const text = markdownToText(markdown).replace(/\s/g, '')
   return [...text].length
+}
+
+/** 全文搜索匹配:标题或正文(剥 Markdown 语法)包含 query(大小写不敏感;空 query 恒 true)。 */
+export function matchesNoteQuery(title: string, markdown: string, query: string): boolean {
+  const q = query.trim().toLowerCase()
+  if (!q) return true
+  if (title.toLowerCase().includes(q)) return true
+  return markdownToText(markdown).toLowerCase().includes(q)
 }
 
 function escapeValue(v: string): string {

@@ -59,6 +59,9 @@ class NoteService {
         if (!name.endsWith('.md')) continue
         const note = this.readNoteFile(join(this.notesDir, name))
         if (!note) continue
+        // v2:手机端移入回收站的笔记不在桌面列表出现(docs/01 §3.6 配套;
+        // 恢复/彻底清理在手机回收站页操作,trashedAt 随 .md 同步回桌面)
+        if (note.trashedAt) continue
         items.push(this.toListItem(note))
       }
     } catch {
@@ -105,6 +108,56 @@ class NoteService {
     if (!existing) return
     await this.writeNoteAtomic({ ...existing, pinned, updatedAt: new Date().toISOString() })
     this.broadcastChanged()
+  }
+
+  // ── 回收站(v2 trashedAt;docs/01 §3.6 桌面配套)─────────
+
+  /** 回收站列表:trashedAt 非空,按删除时间倒序(手机端移入回收站,随 .md 同步到桌面)。 */
+  trashList(): NoteListItem[] {
+    const items: NoteListItem[] = []
+    try {
+      for (const name of readdirSync(this.notesDir)) {
+        if (!name.endsWith('.md')) continue
+        const note = this.readNoteFile(join(this.notesDir, name))
+        if (!note || !note.trashedAt) continue
+        items.push(this.toListItem(note))
+      }
+    } catch {
+      // 目录不存在 = 空库
+    }
+    return items.sort((a, b) => (b.trashedAt ?? '').localeCompare(a.trashedAt ?? ''))
+  }
+
+  /** 回收站恢复:trashedAt 置 null(随下次同步传回手机端回收站移出)。 */
+  async restore(id: string): Promise<NoteFile | null> {
+    const existing = this.get(id)
+    if (!existing || !existing.trashedAt) return null
+    const next: NoteFile = { ...existing, trashedAt: null, updatedAt: new Date().toISOString() }
+    await this.writeNoteAtomic(next)
+    this.broadcastChanged()
+    return next
+  }
+
+  /**
+   * 在手机上打开笔记(docs/01 §3.6):am start 携带 noteId extra,手机端 __openNote 直达编辑页;
+   * 不支持 extra 的旧包降级为仅拉起 App。id 走严格白名单后才可拼进 shell 命令。
+   */
+  async openOnPhone(serial: string, id: string): Promise<{ ok: boolean; message: string }> {
+    if (!NOTE_ID_STRICT.test(id)) return { ok: false, message: '笔记 id 非法' }
+    const client = await deviceService.getDeviceClient(serial)
+    if (!client) return { ok: false, message: '设备已断开' }
+    const COMPONENT = 'com.amoolink.notes/.MainActivity'
+    try {
+      await execOut(client, `am start -n ${COMPONENT} --es noteId '${id}'`)
+      return { ok: true, message: '已在手机上打开该笔记' }
+    } catch (err) {
+      try {
+        await execOut(client, `am start -a android.intent.action.MAIN -c android.intent.category.LAUNCHER -n ${COMPONENT}`)
+        return { ok: true, message: '已打开手机笔记 App(旧版本不支持定位到笔记)' }
+      } catch {
+        return { ok: false, message: err instanceof Error ? err.message : String(err) }
+      }
+    }
   }
 
   /** 本地删除:落 tombstone 到 manifest(删除随下次同步传播到手机)。 */
@@ -473,6 +526,11 @@ class NoteService {
       createdAt: note.createdAt,
       updatedAt: note.updatedAt,
       pinned: note.pinned,
+      color: note.color,
+      trashedAt: note.trashedAt,
+      remindAt: note.remindAt,
+      // 正文随列表下发:渲染端全文搜索用(本地文件量级可承受)
+      markdown: note.markdown,
       excerpt: noteExcerpt(note.markdown),
       wordCount: noteWordCount(note.markdown),
     }
@@ -508,6 +566,9 @@ class NoteService {
 }
 
 // ── 模块级工具 ──────────────────────────────────────────
+
+/** 笔记 id 严格格式(与手机端 Kotlin idPattern 一致);openOnPhone 拼 shell 前必须先过此白名单。 */
+const NOTE_ID_STRICT = /^[0-9]{8}-[0-9]{6}-[a-z0-9]{5}$/
 
 function md5(text: string): string {
   return createHash('md5').update(text, 'utf8').digest('hex')

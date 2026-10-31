@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Editor } from '@amoolink/notes-editor/react'
 import { TiptapNoteEditor } from '@amoolink/notes-editor/react'
-import { noteWordCount } from '@amoolink/notes-editor'
-import { useDevices, useNotes, type NoteListItemView } from '../bridge'
+import { matchesNoteQuery, noteWordCount } from '@amoolink/notes-editor'
+import { useDevices, useNotes, useTrashNotes, type NoteListItemView } from '../bridge'
 import {
   NoteIcon,
+  PhoneIcon,
   PinIcon,
   PlusIcon,
   RefreshIcon,
@@ -13,12 +14,15 @@ import {
 } from '../components/Icons'
 import './Notes.css'
 
-/** 笔记页(M6):左列表 + 右编辑;500ms 防抖自动保存;同步状态条(docs/08 §4)。 */
+/** 笔记页(M6):左列表 + 右编辑;500ms 防抖自动保存;同步状态条(docs/08 §4)。
+ * P1:v2 回收站视图(恢复/彻底删除)与「在手机上打开」直达(docs/01 §3.6)。 */
 export default function NotesPage() {
   const { notes, syncState, reload } = useNotes()
+  const { trashed, reloadTrash } = useTrashNotes()
   const { devices } = useDevices()
   const [activeId, setActiveId] = useState<string | null>(null)
   const [query, setQuery] = useState('')
+  const [view, setView] = useState<'notes' | 'trash'>('notes')
   const [toast, setToast] = useState<string | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -34,11 +38,10 @@ export default function NotesPage() {
   }, [notes, activeId])
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
+    const q = query.trim()
     if (!q) return notes
-    return notes.filter(
-      (n) => n.title.toLowerCase().includes(q) || n.excerpt.toLowerCase().includes(q),
-    )
+    // 全文搜索:标题 + 正文(摘要只是正文前 60 字,长文靠全文;第一条批增量)
+    return notes.filter((n) => matchesNoteQuery(n.title, n.markdown, q))
   }, [notes, query])
 
   const createNote = async (): Promise<void> => {
@@ -75,6 +78,47 @@ export default function NotesPage() {
     }
   }
 
+  /** 在手机上打开该笔记(docs/01 §3.6):am start --es noteId → 手机端 __openNote 直达编辑页。 */
+  const openOnPhone = async (id: string): Promise<void> => {
+    const first = devices.find((d) => d.state === 'device')
+    if (!first) {
+      showToast('没有已连接的手机')
+      return
+    }
+    try {
+      const res = await window.amoolink.openNoteOnPhone(first.serial, id)
+      showToast(res.message)
+    } catch (err) {
+      showToast(`打开失败:${errText(err)}`)
+    }
+  }
+
+  /** 回收站恢复:trashedAt=null,随下次同步传回手机。 */
+  const restoreNote = async (id: string): Promise<void> => {
+    try {
+      const note = await window.amoolink.restoreNote(id)
+      if (note) {
+        reload()
+        reloadTrash()
+        showToast('已恢复(连接手机后同步)')
+      }
+    } catch (err) {
+      showToast(`恢复失败:${errText(err)}`)
+    }
+  }
+
+  /** 回收站彻底删除:物理删 + tombstone(与列表删除同路径,随同步删除手机端文件)。 */
+  const deleteForever = async (id: string): Promise<void> => {
+    try {
+      await window.amoolink.removeNote(id)
+      reload()
+      reloadTrash()
+      showToast('已彻底删除(连接手机后同步删除)')
+    } catch (err) {
+      showToast(`删除失败:${errText(err)}`)
+    }
+  }
+
   return (
     <section className="page notes-page">
       <header className="page-header">
@@ -82,6 +126,18 @@ export default function NotesPage() {
         <span className="notes-count num">{notes.length} 条</span>
         <div className="spacer" />
         <SyncStatusBar state={syncState} onSyncNow={() => void syncNow()} />
+        <button
+          type="button"
+          className={`btn btn-sm ${view === 'trash' ? 'btn-primary' : 'btn-ghost'}`}
+          onClick={() => {
+            setView(view === 'trash' ? 'notes' : 'trash')
+            setActiveId(null) // 回收站笔记不可编辑
+          }}
+          title="查看回收站(手机端移入回收站的笔记)"
+        >
+          <TrashIcon size={13} />
+          回收站{trashed.length > 0 ? `(${trashed.length})` : ''}
+        </button>
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => void installApp()} title="把笔记 App 安装到手机">
           装到手机
         </button>
@@ -92,38 +148,59 @@ export default function NotesPage() {
       </header>
 
       <div className="notes-layout">
-        <aside className="notes-list" aria-label="笔记列表">
-          <div className="notes-search">
-            <input
-              type="search"
-              placeholder="搜索笔记"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </div>
-          {filtered.length === 0 ? (
-            <div className="notes-list-empty">
-              <NoteIcon size={22} />
-              <p>{query ? '没有匹配的笔记' : '还没有笔记,点右上角新建'}</p>
-            </div>
+        <aside className="notes-list" aria-label={view === 'trash' ? '回收站列表' : '笔记列表'}>
+          {view === 'trash' ? (
+            trashed.length === 0 ? (
+              <div className="notes-list-empty">
+                <TrashIcon size={22} />
+                <p>回收站是空的;手机端移入回收站的笔记会出现在这里</p>
+              </div>
+            ) : (
+              trashed.map((n) => (
+                <TrashRow
+                  key={n.id}
+                  note={n}
+                  onRestore={() => void restoreNote(n.id)}
+                  onDeleteForever={() => void deleteForever(n.id)}
+                />
+              ))
+            )
           ) : (
-            filtered.map((n) => (
-              <NoteRow
-                key={n.id}
-                note={n}
-                active={n.id === activeId}
-                onSelect={() => setActiveId(n.id)}
-                onPin={() => {
-                  void window.amoolink.pinNote(n.id, !n.pinned).then(reload)
-                }}
-                onDelete={() => {
-                  void window.amoolink.removeNote(n.id).then(() => {
-                    reload()
-                    showToast('已删除(连接手机后同步删除)')
-                  })
-                }}
-              />
-            ))
+            <>
+              <div className="notes-search">
+                <input
+                  type="search"
+                  placeholder="搜索笔记"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+              </div>
+              {filtered.length === 0 ? (
+                <div className="notes-list-empty">
+                  <NoteIcon size={22} />
+                  <p>{query ? '没有匹配的笔记' : '还没有笔记,点右上角新建'}</p>
+                </div>
+              ) : (
+                filtered.map((n) => (
+                  <NoteRow
+                    key={n.id}
+                    note={n}
+                    active={n.id === activeId}
+                    onSelect={() => setActiveId(n.id)}
+                    onPin={() => {
+                      void window.amoolink.pinNote(n.id, !n.pinned).then(reload)
+                    }}
+                    onOpenOnPhone={() => void openOnPhone(n.id)}
+                    onDelete={() => {
+                      void window.amoolink.removeNote(n.id).then(() => {
+                        reload()
+                        showToast('已删除(连接手机后同步删除)')
+                      })
+                    }}
+                  />
+                ))
+              )}
+            </>
           )}
         </aside>
 
@@ -152,18 +229,20 @@ export default function NotesPage() {
   )
 }
 
-/** 左列单行:标题+摘要+相对时间+置顶/删除(hover 显示)。 */
+/** 左列单行:标题+摘要+相对时间+在手机上打开/置顶/删除(hover 显示)。 */
 function NoteRow({
   note,
   active,
   onSelect,
   onPin,
+  onOpenOnPhone,
   onDelete,
 }: {
   note: NoteListItemView
   active: boolean
   onSelect: () => void
   onPin: () => void
+  onOpenOnPhone: () => void
   onDelete: () => void
 }) {
   return (
@@ -178,10 +257,45 @@ function NoteRow({
         <span className="note-row-time num">{relativeTime(note.updatedAt)}</span>
       </div>
       <div className="note-row-actions">
+        <button type="button" title="在手机上打开" onClick={(e) => { e.stopPropagation(); onOpenOnPhone() }}>
+          <PhoneIcon size={13} />
+        </button>
         <button type="button" title={note.pinned ? '取消置顶' : '置顶'} onClick={(e) => { e.stopPropagation(); onPin() }}>
           <PinIcon size={13} className={note.pinned ? 'pinned' : undefined} />
         </button>
         <button type="button" title="删除" onClick={(e) => { e.stopPropagation(); onDelete() }}>
+          <TrashIcon size={13} />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/** 回收站单行:标题+摘要+删于时间+恢复/彻底删除(hover 显示)。 */
+function TrashRow({
+  note,
+  onRestore,
+  onDeleteForever,
+}: {
+  note: NoteListItemView
+  onRestore: () => void
+  onDeleteForever: () => void
+}) {
+  return (
+    <div className="note-row trash-row" role="listitem">
+      <div className="note-row-main">
+        <div className="note-row-title">
+          <TrashIcon size={12} className="note-pin-flag" />
+          <span>{note.title || '未命名笔记'}</span>
+        </div>
+        <p className="note-row-excerpt">{note.excerpt || '空白笔记'}</p>
+        <span className="note-row-time num">删于 {relativeTime(note.trashedAt ?? note.updatedAt)}</span>
+      </div>
+      <div className="note-row-actions">
+        <button type="button" title="恢复(移出回收站)" onClick={onRestore}>
+          <RefreshIcon size={13} />
+        </button>
+        <button type="button" title="彻底删除(不可恢复)" onClick={onDeleteForever}>
           <TrashIcon size={13} />
         </button>
       </div>

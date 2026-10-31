@@ -3,6 +3,7 @@ import {
   createNote,
   makeNoteId,
   markdownToText,
+  matchesNoteQuery,
   noteExcerpt,
   noteWordCount,
   parseNote,
@@ -19,19 +20,59 @@ describe('makeNoteId', () => {
 })
 
 describe('serializeNote / parseNote 往返', () => {
-  it('完整字段往返无损', () => {
+  it('完整字段(v2 八字段)往返无损', () => {
     const note = {
       id: '20261027-100000-abcde',
       title: '会议纪要\n第二行',
       createdAt: '2026-10-27T02:00:00.000Z',
       updatedAt: '2026-10-27T03:00:00.000Z',
       pinned: true,
+      color: 'blue',
+      trashedAt: null,
+      remindAt: '2026-10-30T08:00:00.000Z',
       markdown: '# 标题\n\n正文 **加粗** 与 `代码`。',
     }
     const raw = serializeNote(note)
     expect(raw).toContain('id: 20261027-100000-abcde')
     expect(raw).toContain('pinned: true')
+    expect(raw).toContain('color: blue')
+    expect(raw).toContain('remindAt: 2026-10-30T08:00:00.000Z')
     expect(parseNote(raw)).toEqual(note)
+  })
+
+  it('v2 回收站状态往返(trashedAt 非空)', () => {
+    const note = {
+      ...createNote(''),
+      id: '20261027-100000-zzzzz',
+      trashedAt: '2026-10-28T01:02:03.000Z',
+    }
+    const back = parseNote(serializeNote(note))
+    expect(back.trashedAt).toBe('2026-10-28T01:02:03.000Z')
+  })
+
+  it('v1 旧文件(5 字段)读取按缺省值,不丢正文', () => {
+    const raw = [
+      '---',
+      'id: 20261027-100000-old01',
+      'title: 旧笔记',
+      'createdAt: 2026-10-01T00:00:00.000Z',
+      'updatedAt: 2026-10-02T00:00:00.000Z',
+      'pinned: false',
+      '---',
+      '',
+      '旧正文',
+    ].join('\n')
+    const note = parseNote(raw)
+    expect(note.color).toBe('default')
+    expect(note.trashedAt).toBeNull()
+    expect(note.remindAt).toBeNull()
+    expect(note.markdown).toBe('旧正文')
+  })
+
+  it('color/trashedAt 非法值容错', () => {
+    const note = parseNote('---\nid: x9\ncolor: pink\ntrashedAt: not-a-date\n---\n')
+    expect(note.color).toBe('default')
+    expect(note.trashedAt).toBeNull()
   })
 
   it('空正文 / 空标题', () => {
@@ -103,5 +144,21 @@ describe('派生标题', () => {
     const long = '字'.repeat(50)
     const note = parseNote(`---\nid: x5\n---\n${long}`)
     expect(note.title.length).toBe(40)
+  })
+})
+
+describe('matchesNoteQuery 全文搜索(第一批)', () => {
+  it('标题命中与正文深处命中', () => {
+    expect(matchesNoteQuery('会议纪要', '无关内容', '会议')).toBe(true)
+    expect(matchesNoteQuery('购物', '很深处的**蓝鲸**关键词', '蓝鲸')).toBe(true)
+    expect(matchesNoteQuery('购物', '普通内容', '蓝鲸')).toBe(false)
+  })
+
+  it('语法符号不干扰匹配(加粗星号被剥掉)与大小写不敏感', () => {
+    expect(matchesNoteQuery('T', '**TODO** 清单', 'todo')).toBe(true)
+  })
+
+  it('空 query 恒匹配', () => {
+    expect(matchesNoteQuery('x', '', '')).toBe(true)
   })
 })

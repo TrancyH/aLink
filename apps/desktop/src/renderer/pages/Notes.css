@@ -269,3 +269,8 @@
 }
 
 .note-editor-loading { color: var(--color-text-tertiary); font-size: var(--font-size-sm); padding: 24px 0; }
+
+/* 回收站视图(v2 trashedAt;docs/01 §3.6):行操作常显(恢复为主操作,不与 hover 抢) */
+.trash-row .note-row-actions { display: flex; }
+.trash-row .note-row-title svg { color: var(--color-text-tertiary); }
+.trash-row .note-row-excerpt { color: var(--color-text-tertiary); }

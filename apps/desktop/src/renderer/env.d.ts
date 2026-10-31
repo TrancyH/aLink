@@ -153,6 +153,9 @@ declare global {
       saveNote(input: { id: string; title: string; markdown: string; pinned?: boolean }): Promise<NoteFile | null>
       pinNote(id: string, pinned: boolean): Promise<{ ok: boolean }>
       removeNote(id: string): Promise<void>
+      listTrashedNotes(): Promise<NoteListItem[]>
+      restoreNote(id: string): Promise<NoteFile | null>
+      openNoteOnPhone(serial: string, id: string): Promise<{ ok: boolean; message: string }>
       syncNotesNow(serial?: string): Promise<SyncState>
       getNotesState(): Promise<SyncState>
       installNotesApp(serial: string): Promise<{ ok: boolean; message: string }>
